@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit Kerja Supply Chain & Facilities Task Manager</title>
+<style>
+  :root{
+    --bg:#FCF5EF;
+    --surface:#FFFFFF;
+    --surface-alt:#F7ECE0;
+    --border:#EBDFCF;
+    --text:#20242B;
+    --text-secondary:#5C6773;
+    --text-muted:#8D97A1;
+    --accent:#F98125;
+    --accent-light:#FDE7D3;
+    --ok-bg:#E1E5EF; --ok-text:#11224D; --ok-border:#B9C1D9;
+    --warn-bg:#FFF1D9; --warn-text:#8A5A0B; --warn-border:#FFC971;
+    --danger-bg:#F7DADA; --danger-text:#8C0000; --danger-border:#E3AFAF;
+    --idle-bg:#EEEEEC; --idle-text:#5B6459; --idle-border:#D6D9D2;
+    --info-bg:#E1EFFF; --info-text:#0058C7; --info-border:#B3D6FF;
+    --p-high-bg:#F7DADA; --p-high-text:#8C0000; --p-high-border:#E3AFAF;
+    --p-med-bg:#FFF1D9; --p-med-text:#8A5A0B; --p-med-border:#FFC971;
+    --p-low-bg:#EEEEEC; --p-low-text:#5B6459; --p-low-border:#D6D9D2;
+    --radius:10px;
+    --font: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);background:var(--bg);color:var(--text);padding:32px 24px 80px;}
+  .wrap{max-width:1120px;margin:0 auto;}
+
+  .header{
+    display:flex;align-items:flex-end;justify-content:space-between;
+    margin-bottom:20px;flex-wrap:wrap;gap:12px;
+    border-bottom:2px solid var(--accent);padding-bottom:16px;
+  }
+  .header-tag{
+    font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);
+    font-weight:700;background:var(--accent-light);padding:4px 10px;border-radius:100px;
+  }
+  .header h1{font-size:22px;font-weight:700;margin:8px 0 4px;letter-spacing:-0.01em;}
+  .header p{margin:0;color:var(--text-secondary);font-size:13.5px;}
+  #syncStatus{font-size:11.5px;color:var(--text-muted);margin-top:6px;}
+
+  .role-tabs{display:flex;gap:6px;margin-bottom:20px;}
+  .role-tab{
+    padding:9px 18px;border-radius:100px;border:1px solid var(--border);
+    background:var(--surface);color:var(--text-secondary);font-weight:700;font-size:13px;
+    cursor:pointer;
+  }
+  .role-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+  .card .num{font-size:26px;font-weight:700;line-height:1.1;}
+  .card .label{font-size:12.5px;color:var(--text-secondary);margin-top:4px;}
+  .card.danger .num{color:var(--danger-text);}
+  .card.warn .num{color:var(--warn-text);}
+  .card.ok .num{color:var(--ok-text);}
+
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:20px;overflow:hidden;}
+  .panel-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+  .panel-head h2{font-size:14.5px;margin:0;font-weight:700;}
+  .panel-body{padding:18px;}
+  .chev{transition:transform .15s ease;color:var(--text-muted);font-size:13px;}
+  .chev.open{transform:rotate(180deg);}
+
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field.full{grid-column:1/-1;}
+  .field label{font-size:12.5px;font-weight:600;color:var(--text-secondary);}
+  input[type=text], input[type=date], select, textarea{
+    font-family:var(--font);font-size:13.5px;padding:8px 10px;border:1px solid var(--border);
+    border-radius:7px;background:var(--surface);color:var(--text);outline:none;width:100%;
+  }
+  input:focus, select:focus, textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light);}
+  textarea{resize:vertical;min-height:52px;font-family:var(--font);}
+
+  .btn{font-family:var(--font);font-size:13.5px;font-weight:600;padding:9px 16px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;}
+  .btn:hover{background:var(--surface-alt);}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn.primary:hover{background:#DD6E15;}
+  .btn.primary:disabled{opacity:.5;cursor:not-allowed;}
+  .btn.ghost{border-color:transparent;background:transparent;color:var(--text-secondary);}
+  .btn.ghost:hover{background:var(--surface-alt);}
+  .btn.small{padding:5px 10px;font-size:12.5px;}
+  .form-actions{margin-top:14px;display:flex;gap:8px;justify-content:flex-end;}
+
+  .toolbar{display:flex;gap:10px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .toolbar input[type=text]{flex:1;min-width:160px;}
+  .toolbar select{min-width:130px;width:auto;}
+  .period-toggle{display:flex;gap:4px;background:var(--surface-alt);padding:4px;border-radius:100px;}
+  .period-btn{
+    padding:7px 16px;border-radius:100px;border:none;background:transparent;
+    color:var(--text-secondary);font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--font);
+  }
+  .period-btn.active{background:var(--accent);color:#fff;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface-alt);}
+  tbody td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:top;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:#FAFBF9;}
+  .task-name{font-weight:600;}
+  .sub{color:var(--text-secondary);font-size:12.5px;margin-top:2px;}
+  .pill{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:100px;border:1px solid;white-space:nowrap;}
+  .pill.danger{background:var(--danger-bg);color:var(--danger-text);border-color:var(--danger-border);}
+  .pill.warn{background:var(--warn-bg);color:var(--warn-text);border-color:var(--warn-border);}
+  .pill.ok{background:var(--ok-bg);color:var(--ok-text);border-color:var(--ok-border);}
+  .pill.idle{background:var(--idle-bg);color:var(--idle-text);border-color:var(--idle-border);}
+  .pill.info{background:var(--info-bg);color:var(--info-text);border-color:var(--info-border);}
+  .pill.p-high{background:var(--p-high-bg);color:var(--p-high-text);border-color:var(--p-high-border);}
+  .pill.p-med{background:var(--p-med-bg);color:var(--p-med-text);border-color:var(--p-med-border);}
+  .pill.p-low{background:var(--p-low-bg);color:var(--p-low-text);border-color:var(--p-low-border);}
+  .row-actions{display:flex;gap:6px;}
+  .empty{padding:40px 18px;text-align:center;color:var(--text-muted);font-size:13.5px;}
+  select.status-select{padding:5px 8px;font-size:12px;font-weight:700;border-radius:100px;border:1px solid var(--border);width:auto;}
+
+  /* PIC view */
+  .pic-picker{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .pic-picker label{font-size:13px;font-weight:600;color:var(--text-secondary);}
+  .pic-picker select{width:auto;min-width:220px;}
+  .task-cards{display:flex;flex-direction:column;gap:12px;padding:18px;}
+  .task-card{border:1px solid var(--border);border-radius:var(--radius);padding:16px;background:var(--surface);}
+  .task-card.done{background:var(--surface-alt);}
+  .tc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:8px;}
+  .tc-title{font-size:15px;font-weight:700;}
+  .tc-project{color:var(--text-secondary);font-size:12.5px;margin-top:2px;}
+  .tc-pills{display:flex;gap:6px;flex-wrap:wrap;}
+  .tc-meta{font-size:12.5px;color:var(--text-secondary);margin:4px 0;line-height:1.5;}
+  .tc-meta b{color:var(--text);}
+  .tc-section{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+  .tc-section label{display:block;font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;}
+  .tc-row{display:flex;gap:8px;align-items:flex-start;}
+  .tc-row textarea{flex:1;}
+  .tc-submitted-at{font-size:11.5px;color:var(--text-muted);margin-top:5px;}
+  .tc-actions{display:flex;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:8px;}
+
+  @media (max-width:720px){
+    .cards{grid-template-columns:repeat(2,1fr);}
+    .form-grid{grid-template-columns:1fr;}
+    table, thead, tbody, tr, th, td{display:block;}
+    thead{display:none;}
+    tbody tr{border-bottom:1px solid var(--border);padding:10px 0;}
+    tbody td{border-bottom:none;padding:4px 14px;}
+    tbody td:before{content:attr(data-label);display:block;font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:2px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div>
+      <div class="header-tag">Unit Kerja Supply Chain & Facilities</div>
+      <h1>Task Manager</h1>
+      <p id="syncStatus"></p>
+    </div>
+  </div>
+
+  <div class="role-tabs">
+    <button class="role-tab active" id="tabAssigner">Master</button>
+    <button class="role-tab" id="tabPic">Task</button>
+    <button class="role-tab" id="tabSummary">Summary</button>
+  </div>
+
+  <!-- ============ ASSIGNER VIEW ============ -->
+  <div id="assignerView">
+
+    <div class="cards" id="cards"></div>
+
+    <div class="panel">
+      <div class="panel-head" id="formToggle">
+        <h2>Tambah tugas baru</h2>
+        <span class="chev open" id="formChev">&#9662;</span>
+      </div>
+      <div class="panel-body" id="formBody">
+        <div class="form-grid">
+          <div class="field full">
+            <label for="f-task">Task</label>
+            <input type="text" id="f-task" placeholder="Contoh: Rekap laporan triwulan">
+          </div>
+          <div class="field">
+            <label for="f-project">Project</label>
+            <input type="text" id="f-project" placeholder="Contoh: Laporan Q3">
+          </div>
+          <div class="field">
+            <label for="f-pic">PIC</label>
+            <input type="text" id="f-pic" placeholder="Nama orang yang ditugaskan">
+          </div>
+          <div class="field">
+            <label for="f-priority">Priority</label>
+            <select id="f-priority">
+              <option value="tinggi">Tinggi</option>
+              <option value="sedang" selected>Sedang</option>
+              <option value="rendah">Rendah</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-deadline">Deadline</label>
+            <input type="date" id="f-deadline">
+          </div>
+          <div class="field full">
+            <label for="f-deliverable">Deliverable (ekspektasi output)</label>
+            <input type="text" id="f-deliverable" placeholder="Contoh: Dokumen PDF, link drive, dsb">
+          </div>
+          <div class="field">
+            <label for="f-status">Status</label>
+            <select id="f-status">
+              <option value="queuing">Queuing</option>
+              <option value="ongoing" selected>Ongoing</option>
+              <option value="onhold">On Hold</option>
+              <option value="done">Done</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-note">Note (opsional)</label>
+            <input type="text" id="f-note" placeholder="Catatan tambahan untuk PIC">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn ghost" id="cancelEdit" style="display:none;">Batal edit</button>
+          <button class="btn primary" id="saveBtn">Simpan tugas</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="toolbar">
+        <input type="text" id="search" placeholder="Cari task, project, atau PIC...">
+        <select id="filterStatus">
+          <option value="all">Semua status</option>
+          <option value="lewat">Overdue</option>
+          <option value="dekat">Close to Deadline</option>
+          <option value="queuing">Queuing</option>
+          <option value="ongoing">Ongoing</option>
+          <option value="onhold">On Hold</option>
+          <option value="done">Done</option>
+        </select>
+        <select id="filterPriority">
+          <option value="all">Semua priority</option>
+          <option value="tinggi">Tinggi</option>
+          <option value="sedang">Sedang</option>
+          <option value="rendah">Rendah</option>
+        </select>
+        <select id="sortBy">
+          <option value="deadline">Urut: deadline terdekat</option>
+          <option value="priority">Urut: priority tertinggi</option>
+          <option value="task">Urut: nama task</option>
+          <option value="pic">Urut: PIC</option>
+        </select>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:22%;">Task</th>
+            <th style="width:12%;">PIC</th>
+            <th style="width:9%;">Priority</th>
+            <th style="width:13%;">Deadline</th>
+            <th style="width:13%;">Status</th>
+            <th style="width:20%;">Deliverable</th>
+            <th style="width:11%;"></th>
+          </tr>
+        </thead>
+        <tbody id="taskBody"></tbody>
+      </table>
+      <div class="empty" id="emptyState" style="display:none;">Belum ada tugas. Tambahkan tugas pertama di atas.</div>
+    </div>
+  </div>
+
+  <!-- ============ PIC VIEW ============ -->
+  <div id="picView" style="display:none;">
+    <div class="panel">
+      <div class="pic-picker">
+        <label for="picSelect">Saya adalah:</label>
+        <select id="picSelect">
+          <option value="">-- Pilih nama --</option>
+        </select>
+      </div>
+      <div class="task-cards" id="picTaskList"></div>
+      <div class="empty" id="picEmpty" style="display:none;">Pilih nama untuk melihat tugas kamu.</div>
+    </div>
+  </div>
+
+  <!-- ============ SUMMARY VIEW ============ -->
+  <div id="summaryView" style="display:none;">
+    <div class="panel">
+      <div class="toolbar">
+        <div class="period-toggle">
+          <button class="period-btn active" id="periodDaily" data-period="daily">Daily</button>
+          <button class="period-btn" id="periodWeekly" data-period="weekly">Weekly</button>
+          <button class="period-btn" id="periodMonthly" data-period="monthly">Monthly</button>
+        </div>
+        <span id="periodRangeLabel" class="sub" style="margin-left:auto;"></span>
+      </div>
+    </div>
+
+    <div class="cards" id="summaryCards"></div>
+
+    <div class="panel">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:24%;">Task</th>
+            <th style="width:14%;">PIC</th>
+            <th style="width:10%;">Priority</th>
+            <th style="width:16%;">Deadline</th>
+            <th style="width:14%;">Status</th>
+            <th style="width:22%;">Deliverable</th>
+          </tr>
+        </thead>
+        <tbody id="summaryBody"></tbody>
+      </table>
+      <div class="empty" id="summaryEmpty" style="display:none;">Tidak ada tugas pada periode ini.</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script>
+// GANTI dengan firebaseConfig dari project Firebase kamu
+const firebaseConfig = {
+  apiKey: "AIzaSyASwaJoed-UtLWFPqBtBaqOGeZQnrFi4_w",
+  authDomain: "task-manager-scf.firebaseapp.com",
+  projectId: "task-manager-scf",
+  storageBucket: "task-manager-scf.firebasestorage.app",
+  messagingSenderId: "544390809064",
+  appId: "1:544390809064:web:b48fd470c58c759753d05d"
+};
+
+let db = null;
+let tasksRef = null;
+try{
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+  tasksRef = db.collection('tasks');
+}catch(e){
+  console.error('Firebase belum dikonfigurasi', e);
+}
+
+let tasks = [];
+let editingId = null;
+let selectedPic = '';
+
+const STATUS_LABEL = {queuing:'Queuing', ongoing:'Ongoing', onhold:'On Hold', done:'Done'};
+const PRIORITY_LABEL = {tinggi:'Tinggi', sedang:'Sedang', rendah:'Rendah'};
+
+function dayDiff(dateStr){
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const d = new Date(dateStr + 'T00:00:00');
+  return Math.round((d - today) / 86400000);
+}
+
+function fmtDate(dateStr){
+  if(!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'});
+}
+
+function fmtDateTime(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'}) + ', ' +
+    d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+}
+
+function getUrgency(task){
+  if(task.status === 'done') return 'selesai';
+  const diff = dayDiff(task.deadline);
+  if(diff < 0) return 'lewat';
+  if(diff <= 3) return 'dekat';
+  return task.status; // queuing / ongoing / onhold
+}
+
+function pillFor(task){
+  const u = getUrgency(task);
+  const diff = dayDiff(task.deadline);
+  if(u === 'selesai') return {cls:'ok', label:'Selesai'};
+  if(u === 'lewat') return {cls:'danger', label:`Overdue ${Math.abs(diff)}d`};
+  if(u === 'dekat') return {cls:'warn', label: diff===0 ? 'Close to Deadline (today)' : `Close to Deadline (${diff}d)`};
+  if(u === 'onhold') return {cls:'idle', label:'On Hold'};
+  if(u === 'queuing') return {cls:'idle', label:'Queuing'};
+  return {cls:'info', label:'Ongoing'};
+}
+
+function priorityPill(p){
+  if(p === 'tinggi') return {cls:'p-high', label:'Tinggi'};
+  if(p === 'rendah') return {cls:'p-low', label:'Rendah'};
+  return {cls:'p-med', label:'Sedang'};
+}
+
+function escapeHtml(str){
+  if(!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function setSyncStatus(text, isError){
+  const el = document.getElementById('syncStatus');
+  if(!el) return;
+  el.textContent = text;
+  el.style.color = isError ? 'var(--danger-text)' : 'var(--text-muted)';
+}
+
+function startSync(){
+  if(!tasksRef){
+    setSyncStatus('Belum terhubung ke Firebase — lihat firebaseConfig di kode.', true);
+    render();
+    return;
+  }
+  setSyncStatus('Menghubungkan...');
+  tasksRef.onSnapshot(snapshot => {
+    tasks = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+    setSyncStatus('Real-time — tersambung ke Firebase.');
+    render();
+  }, err => {
+    console.error(err);
+    setSyncStatus('Gagal tersambung ke Firebase.', true);
+  });
+}
+
+async function addTaskRemote(fields){ await tasksRef.add(fields); }
+async function updateTaskRemote(id, fields){ await tasksRef.doc(id).update(fields); }
+async function deleteTaskRemote(id){ await tasksRef.doc(id).delete(); }
+
+// ---------- Role tabs ----------
+const VIEWS = {
+  tabAssigner: 'assignerView',
+  tabPic: 'picView',
+  tabSummary: 'summaryView'
+};
+function switchView(activeTabId){
+  Object.keys(VIEWS).forEach(tabId => {
+    document.getElementById(tabId).classList.toggle('active', tabId === activeTabId);
+    document.getElementById(VIEWS[tabId]).style.display = tabId === activeTabId ? 'block' : 'none';
+  });
+  if(activeTabId === 'tabSummary') renderSummary();
+}
+document.getElementById('tabAssigner').addEventListener('click', () => switchView('tabAssigner'));
+document.getElementById('tabPic').addEventListener('click', () => switchView('tabPic'));
+document.getElementById('tabSummary').addEventListener('click', () => switchView('tabSummary'));
+
+// ---------- Assigner form ----------
+function resetForm(){
+  document.getElementById('f-task').value = '';
+  document.getElementById('f-project').value = '';
+  document.getElementById('f-pic').value = '';
+  document.getElementById('f-priority').value = 'sedang';
+  document.getElementById('f-deadline').value = '';
+  document.getElementById('f-deliverable').value = '';
+  document.getElementById('f-status').value = 'ongoing';
+  document.getElementById('f-note').value = '';
+  editingId = null;
+  document.getElementById('saveBtn').textContent = 'Simpan tugas';
+  document.getElementById('cancelEdit').style.display = 'none';
+}
+
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const task = document.getElementById('f-task').value.trim();
+  const project = document.getElementById('f-project').value.trim();
+  const pic = document.getElementById('f-pic').value.trim();
+  const priority = document.getElementById('f-priority').value;
+  const deadline = document.getElementById('f-deadline').value;
+  const deliverable = document.getElementById('f-deliverable').value.trim();
+  const status = document.getElementById('f-status').value;
+  const note = document.getElementById('f-note').value.trim();
+
+  if(!task || !deadline || !pic){
+    alert('Task, PIC, dan deadline wajib diisi.');
+    return;
+  }
+  if(!tasksRef){
+    alert('Firebase belum dikonfigurasi.');
+    return;
+  }
+
+  const fields = {task, project, pic, priority, deadline, deliverable, status, note};
+  try{
+    if(editingId){
+      await updateTaskRemote(editingId, fields);
+    }else{
+      await addTaskRemote(fields);
+    }
+    resetForm();
+  }catch(e){
+    setSyncStatus('Gagal menyimpan ke Firebase.', true);
+  }
+});
+
+document.getElementById('cancelEdit').addEventListener('click', resetForm);
+
+document.getElementById('formToggle').addEventListener('click', () => {
+  const body = document.getElementById('formBody');
+  const chev = document.getElementById('formChev');
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  chev.classList.toggle('open', !isOpen);
+});
+
+document.getElementById('search').addEventListener('input', render);
+document.getElementById('filterStatus').addEventListener('change', render);
+document.getElementById('filterPriority').addEventListener('change', render);
+document.getElementById('sortBy').addEventListener('change', render);
+document.getElementById('picSelect').addEventListener('change', (e) => {
+  selectedPic = e.target.value;
+  renderPicView();
+});
+
+function editTask(id){
+  const t = tasks.find(x => x.id === id);
+  if(!t) return;
+  document.getElementById('f-task').value = t.task || '';
+  document.getElementById('f-project').value = t.project || '';
+  document.getElementById('f-pic').value = t.pic || '';
+  document.getElementById('f-priority').value = t.priority || 'sedang';
+  document.getElementById('f-deadline').value = t.deadline || '';
+  document.getElementById('f-deliverable').value = t.deliverable || '';
+  document.getElementById('f-status').value = t.status || 'ongoing';
+  document.getElementById('f-note').value = t.note || '';
+  editingId = id;
+  document.getElementById('saveBtn').textContent = 'Update tugas';
+  document.getElementById('cancelEdit').style.display = 'inline-block';
+  document.getElementById('formBody').style.display = 'block';
+  document.getElementById('formChev').classList.add('open');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+async function deleteTask(id){
+  if(!confirm('Hapus tugas ini?')) return;
+  try{ await deleteTaskRemote(id); }
+  catch(e){ setSyncStatus('Gagal menghapus di Firebase.', true); }
+}
+
+async function changeStatus(id, newStatus){
+  try{ await updateTaskRemote(id, {status: newStatus}); }
+  catch(e){ setSyncStatus('Gagal mengubah status di Firebase.', true); }
+}
+
+// ---------- Master render ----------
+function render(){
+  renderCards();
+  renderAssignerTable();
+  populatePicOptions();
+  renderPicView();
+  renderSummary();
+}
+
+function renderCards(){
+  const total = tasks.length;
+  const lewat = tasks.filter(t => getUrgency(t) === 'lewat').length;
+  const dekat = tasks.filter(t => getUrgency(t) === 'dekat').length;
+  const done = tasks.filter(t => t.status === 'done').length;
+  const cards = [
+    {label:'Total tugas', num: total, cls:''},
+    {label:'Overdue', num: lewat, cls:'danger'},
+    {label:'Close to Deadline', num: dekat, cls:'warn'},
+    {label:'Done', num: done, cls:'ok'},
+  ];
+  document.getElementById('cards').innerHTML = cards.map(c => `
+    <div class="card ${c.cls}">
+      <div class="num">${c.num}</div>
+      <div class="label">${c.label}</div>
+    </div>
+  `).join('');
+}
+
+function renderAssignerTable(){
+  const search = document.getElementById('search').value.toLowerCase();
+  const filter = document.getElementById('filterStatus').value;
+  const filterP = document.getElementById('filterPriority').value;
+  const sortBy = document.getElementById('sortBy').value;
+  const prOrder = {tinggi:0, sedang:1, rendah:2};
+
+  let filtered = tasks.filter(t => {
+    const hay = `${t.task||''} ${t.project||''} ${t.pic||''}`.toLowerCase();
+    if(!hay.includes(search)) return false;
+    if(filterP !== 'all' && t.priority !== filterP) return false;
+    if(filter === 'all') return true;
+    if(['lewat','dekat'].includes(filter)) return getUrgency(t) === filter;
+    return t.status === filter;
+  });
+
+  filtered.sort((a,b) => {
+    if(sortBy === 'task') return (a.task||'').localeCompare(b.task||'');
+    if(sortBy === 'pic') return (a.pic||'').localeCompare(b.pic||'');
+    if(sortBy === 'priority') return (prOrder[a.priority]??1) - (prOrder[b.priority]??1);
+    return new Date(a.deadline) - new Date(b.deadline);
+  });
+
+  const tbody = document.getElementById('taskBody');
+  const empty = document.getElementById('emptyState');
+  tbody.innerHTML = '';
+
+  if(filtered.length === 0){
+    empty.style.display = 'block';
+  }else{
+    empty.style.display = 'none';
+    filtered.forEach(t => {
+      const pill = pillFor(t);
+      const pPill = priorityPill(t.priority);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td data-label="Task">
+          <div class="task-name">${escapeHtml(t.task)}</div>
+          ${t.project ? `<div class="sub">${escapeHtml(t.project)}</div>` : ''}
+        </td>
+        <td data-label="PIC">${escapeHtml(t.pic) || '&mdash;'}</td>
+        <td data-label="Priority"><span class="pill ${pPill.cls}">${pPill.label}</span></td>
+        <td data-label="Deadline">
+          <div>${fmtDate(t.deadline)}</div>
+          <span class="pill ${pill.cls}" style="margin-top:4px;display:inline-block;">${pill.label}</span>
+        </td>
+        <td data-label="Status">
+          <select class="status-select" data-id="${t.id}">
+            <option value="queuing" ${t.status==='queuing'?'selected':''}>Queuing</option>
+            <option value="ongoing" ${t.status==='ongoing'?'selected':''}>Ongoing</option>
+            <option value="onhold" ${t.status==='onhold'?'selected':''}>On Hold</option>
+            <option value="done" ${t.status==='done'?'selected':''}>Done</option>
+          </select>
+        </td>
+        <td data-label="Deliverable">
+          <div class="sub">${escapeHtml(t.deliverable) || '&mdash;'}</div>
+          ${t.deliverableSubmission ? `<div class="sub" style="color:var(--ok-text);margin-top:4px;">Submit: ${escapeHtml(t.deliverableSubmission)}</div>` : ''}
+        </td>
+        <td data-label="Aksi">
+          <div class="row-actions">
+            <button class="btn small" data-edit="${t.id}">Edit</button>
+            <button class="btn small ghost" data-delete="${t.id}">Hapus</button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => editTask(btn.dataset.edit)));
+    tbody.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => deleteTask(btn.dataset.delete)));
+    tbody.querySelectorAll('.status-select').forEach(sel => sel.addEventListener('change', () => changeStatus(sel.dataset.id, sel.value)));
+  }
+}
+
+// ---------- PIC view ----------
+function populatePicOptions(){
+  const sel = document.getElementById('picSelect');
+  const current = sel.value;
+  const names = [...new Set(tasks.map(t => t.pic).filter(Boolean))].sort((a,b) => a.localeCompare(b));
+  sel.innerHTML = '<option value="">-- Pilih nama --</option>' +
+    names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  if(names.includes(current)){
+    sel.value = current;
+    selectedPic = current;
+  }
+}
+
+function renderPicView(){
+  const list = document.getElementById('picTaskList');
+  const empty = document.getElementById('picEmpty');
+
+  if(!selectedPic){
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    empty.textContent = 'Pilih nama untuk melihat tugas kamu.';
+    return;
+  }
+
+  const myTasks = tasks.filter(t => t.pic === selectedPic).sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+
+  if(myTasks.length === 0){
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    empty.textContent = 'Belum ada tugas untuk kamu.';
+    return;
+  }
+
+  empty.style.display = 'none';
+  list.innerHTML = myTasks.map(t => {
+    const pill = pillFor(t);
+    const pPill = priorityPill(t.priority);
+    const isDone = t.status === 'done';
+    return `
+    <div class="task-card ${isDone ? 'done' : ''}">
+      <div class="tc-top">
+        <div>
+          <div class="tc-title">${escapeHtml(t.task)}</div>
+          ${t.project ? `<div class="tc-project">${escapeHtml(t.project)}</div>` : ''}
+        </div>
+        <div class="tc-pills">
+          <span class="pill ${pPill.cls}">${pPill.label}</span>
+          <span class="pill ${pill.cls}">${pill.label}</span>
+        </div>
+      </div>
+      <div class="tc-meta"><b>Deadline:</b> ${fmtDate(t.deadline)}</div>
+      ${t.deliverable ? `<div class="tc-meta"><b>Ekspektasi deliverable:</b> ${escapeHtml(t.deliverable)}</div>` : ''}
+      ${t.note ? `<div class="tc-meta"><b>Catatan dari assigner:</b> ${escapeHtml(t.note)}</div>` : ''}
+
+      ${!isDone ? `
+      <div class="tc-section">
+        <label>Status pekerjaan</label>
+        <select class="status-select pic-status" data-id="${t.id}">
+          <option value="queuing" ${t.status==='queuing'?'selected':''}>Queuing</option>
+          <option value="ongoing" ${t.status==='ongoing'?'selected':''}>Ongoing</option>
+          <option value="onhold" ${t.status==='onhold'?'selected':''}>On Hold</option>
+        </select>
+      </div>` : `
+      <div class="tc-section">
+        <span class="pill ok">Selesai${t.doneAt ? ' — ' + fmtDateTime(t.doneAt) : ''}</span>
+      </div>`}
+
+      <div class="tc-section">
+        <label>Submit deliverable (link atau catatan hasil kerja)</label>
+        <div class="tc-row">
+          <textarea class="deliverable-input" data-id="${t.id}" placeholder="Tempel link Drive/Sheet, atau tulis catatan hasil kerja">${escapeHtml(t.deliverableSubmission)}</textarea>
+          <button class="btn small" data-submit-deliverable="${t.id}">Simpan</button>
+        </div>
+        ${t.deliverableSubmittedAt ? `<div class="tc-submitted-at">Terakhir disubmit: ${fmtDateTime(t.deliverableSubmittedAt)}</div>` : ''}
+      </div>
+
+      <div class="tc-actions">
+        <span></span>
+        <button class="btn primary" data-mark-done="${t.id}" ${isDone ? 'disabled' : ''}>${isDone ? 'Sudah selesai' : 'Tandai Selesai'}</button>
+      </div>
+    </div>
+    `;
+  }).join('');
+
+  list.querySelectorAll('.pic-status').forEach(sel => {
+    sel.addEventListener('change', () => changeStatus(sel.dataset.id, sel.value));
+  });
+
+  list.querySelectorAll('[data-submit-deliverable]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.submitDeliverable;
+      const textarea = list.querySelector(`.deliverable-input[data-id="${id}"]`);
+      const value = textarea.value.trim();
+      if(!value){ alert('Isi dulu link atau catatan hasil kerjanya.'); return; }
+      try{
+        await updateTaskRemote(id, {deliverableSubmission: value, deliverableSubmittedAt: new Date().toISOString()});
+      }catch(e){
+        setSyncStatus('Gagal menyimpan deliverable ke Firebase.', true);
+      }
+    });
+  });
+
+  list.querySelectorAll('[data-mark-done]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.markDone;
+      const t = tasks.find(x => x.id === id);
+      if(t && !t.deliverableSubmission){
+        if(!confirm('Deliverable belum diisi. Yakin tetap tandai selesai?')) return;
+      }
+      try{
+        await updateTaskRemote(id, {status: 'done', doneAt: new Date().toISOString()});
+      }catch(e){
+        setSyncStatus('Gagal menandai selesai di Firebase.', true);
+      }
+    });
+  });
+}
+
+// ---------- Summary view ----------
+let currentPeriod = 'daily';
+
+document.getElementById('periodDaily').addEventListener('click', () => setPeriod('daily'));
+document.getElementById('periodWeekly').addEventListener('click', () => setPeriod('weekly'));
+document.getElementById('periodMonthly').addEventListener('click', () => setPeriod('monthly'));
+
+function setPeriod(period){
+  currentPeriod = period;
+  ['periodDaily','periodWeekly','periodMonthly'].forEach(id => {
+    document.getElementById(id).classList.toggle('active', id === 'period' + period.charAt(0).toUpperCase() + period.slice(1));
+  });
+  renderSummary();
+}
+
+function getPeriodRange(period){
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  let start, end;
+  if(period === 'daily'){
+    start = new Date(today);
+    end = new Date(today);
+  }else if(period === 'weekly'){
+    const day = today.getDay(); // 0=Sun..6=Sat
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+    start = new Date(today);
+    start.setDate(today.getDate() + mondayOffset);
+    end = new Date(start);
+    end.setDate(start.getDate() + 6);
+  }else{
+    start = new Date(today.getFullYear(), today.getMonth(), 1);
+    end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  }
+  return {start, end};
+}
+
+function isWithinRange(dateStr, start, end){
+  if(!dateStr) return false;
+  const d = new Date(dateStr + 'T00:00:00');
+  return d >= start && d <= end;
+}
+
+function renderSummary(){
+  const {start, end} = getPeriodRange(currentPeriod);
+  const rangeLabel = start.getTime() === end.getTime()
+    ? fmtDate(start.toISOString().slice(0,10))
+    : `${fmtDate(start.toISOString().slice(0,10))} — ${fmtDate(end.toISOString().slice(0,10))}`;
+  document.getElementById('periodRangeLabel').textContent = rangeLabel;
+
+  const filtered = tasks.filter(t => isWithinRange(t.deadline, start, end))
+    .sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+
+  const total = filtered.length;
+  const lewat = filtered.filter(t => getUrgency(t) === 'lewat').length;
+  const dekat = filtered.filter(t => getUrgency(t) === 'dekat').length;
+  const done = filtered.filter(t => t.status === 'done').length;
+
+  document.getElementById('summaryCards').innerHTML = [
+    {label:'Total tugas', num: total, cls:''},
+    {label:'Overdue', num: lewat, cls:'danger'},
+    {label:'Close to Deadline', num: dekat, cls:'warn'},
+    {label:'Done', num: done, cls:'ok'},
+  ].map(c => `
+    <div class="card ${c.cls}">
+      <div class="num">${c.num}</div>
+      <div class="label">${c.label}</div>
+    </div>
+  `).join('');
+
+  const tbody = document.getElementById('summaryBody');
+  const empty = document.getElementById('summaryEmpty');
+  tbody.innerHTML = '';
+
+  if(filtered.length === 0){
+    empty.style.display = 'block';
+  }else{
+    empty.style.display = 'none';
+    filtered.forEach(t => {
+      const pill = pillFor(t);
+      const pPill = priorityPill(t.priority);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td data-label="Task">
+          <div class="task-name">${escapeHtml(t.task)}</div>
+          ${t.project ? `<div class="sub">${escapeHtml(t.project)}</div>` : ''}
+        </td>
+        <td data-label="PIC">${escapeHtml(t.pic) || '&mdash;'}</td>
+        <td data-label="Priority"><span class="pill ${pPill.cls}">${pPill.label}</span></td>
+        <td data-label="Deadline">
+          <div>${fmtDate(t.deadline)}</div>
+          <span class="pill ${pill.cls}" style="margin-top:4px;display:inline-block;">${pill.label}</span>
+        </td>
+        <td data-label="Status"><span class="pill ${t.status==='done' ? 'ok' : 'idle'}">${STATUS_LABEL[t.status] || t.status}</span></td>
+        <td data-label="Deliverable">
+          <div class="sub">${escapeHtml(t.deliverable) || '&mdash;'}</div>
+          ${t.deliverableSubmission ? `<div class="sub" style="color:var(--ok-text);margin-top:4px;">Submit: ${escapeHtml(t.deliverableSubmission)}</div>` : ''}
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+}
+
+render();
+startSync();
+</script>
+</body>
+</html>
