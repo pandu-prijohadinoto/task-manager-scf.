@@ -97,13 +97,16 @@
   }
   .period-btn.active{background:var(--accent);color:#fff;}
 
-  table{width:100%;border-collapse:collapse;font-size:13px;}
-  thead th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface-alt);}
-  tbody td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:top;}
+  .table-scroll{overflow-x:auto;}
+  table{width:100%;min-width:880px;border-collapse:collapse;font-size:13px;table-layout:fixed;}
+  thead th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);padding:11px 14px;border-bottom:1px solid var(--border);background:var(--surface-alt);white-space:nowrap;}
+  tbody td{padding:13px 14px;border-bottom:1px solid var(--border);vertical-align:top;}
   tbody tr:last-child td{border-bottom:none;}
-  tbody tr:hover{background:#FAFBF9;}
+  tbody tr:nth-child(even){background:#FBFBFA;}
+  tbody tr:hover{background:var(--accent-light);}
   .task-name{font-weight:600;}
   .sub{color:var(--text-secondary);font-size:12.5px;margin-top:2px;}
+  .cell-clip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
   .pill{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:100px;border:1px solid;white-space:nowrap;}
   .pill.danger{background:var(--danger-bg);color:var(--danger-text);border-color:var(--danger-border);}
   .pill.warn{background:var(--warn-bg);color:var(--warn-text);border-color:var(--warn-border);}
@@ -140,11 +143,15 @@
   @media (max-width:720px){
     .cards{grid-template-columns:repeat(2,1fr);}
     .form-grid{grid-template-columns:1fr;}
-    table, thead, tbody, tr, th, td{display:block;}
+    .table-scroll{overflow-x:visible;}
+    table{display:block;min-width:0;width:100%;table-layout:auto;}
+    thead, tbody, tr, th, td{display:block;}
     thead{display:none;}
     tbody tr{border-bottom:1px solid var(--border);padding:10px 0;}
+    tbody tr:nth-child(even){background:transparent;}
     tbody td{border-bottom:none;padding:4px 14px;}
     tbody td:before{content:attr(data-label);display:block;font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:2px;}
+    .cell-clip{white-space:normal;}
   }
 </style>
 </head>
@@ -205,16 +212,7 @@
             <label for="f-deliverable">Deliverable (ekspektasi output)</label>
             <input type="text" id="f-deliverable" placeholder="Contoh: Dokumen PDF, link drive, dsb">
           </div>
-          <div class="field">
-            <label for="f-status">Status</label>
-            <select id="f-status">
-              <option value="queuing">Queuing</option>
-              <option value="ongoing" selected>Ongoing</option>
-              <option value="onhold">On Hold</option>
-              <option value="done">Done</option>
-            </select>
-          </div>
-          <div class="field">
+          <div class="field full">
             <label for="f-note">Note (opsional)</label>
             <input type="text" id="f-note" placeholder="Catatan tambahan untuk PIC">
           </div>
@@ -233,6 +231,7 @@
           <option value="all">Semua status</option>
           <option value="lewat">Overdue</option>
           <option value="dekat">Close to Deadline</option>
+          <option value="unassigned">Unassigned</option>
           <option value="queuing">Queuing</option>
           <option value="ongoing">Ongoing</option>
           <option value="onhold">On Hold</option>
@@ -251,6 +250,7 @@
           <option value="pic">Urut: PIC</option>
         </select>
       </div>
+      <div class="table-scroll">
       <table>
         <thead>
           <tr>
@@ -265,6 +265,7 @@
         </thead>
         <tbody id="taskBody"></tbody>
       </table>
+      </div>
       <div class="empty" id="emptyState" style="display:none;">Belum ada tugas. Tambahkan tugas pertama di atas.</div>
     </div>
   </div>
@@ -292,6 +293,8 @@
           <button class="period-btn" id="periodWeekly" data-period="weekly">Weekly</button>
           <button class="period-btn" id="periodMonthly" data-period="monthly">Monthly</button>
         </div>
+        <input type="date" id="periodAnchor" style="width:auto;">
+        <button class="btn small" id="periodToday">Hari ini</button>
         <span id="periodRangeLabel" class="sub" style="margin-left:auto;"></span>
       </div>
     </div>
@@ -299,6 +302,7 @@
     <div class="cards" id="summaryCards"></div>
 
     <div class="panel">
+      <div class="table-scroll">
       <table>
         <thead>
           <tr>
@@ -312,6 +316,7 @@
         </thead>
         <tbody id="summaryBody"></tbody>
       </table>
+      </div>
       <div class="empty" id="summaryEmpty" style="display:none;">Tidak ada tugas pada periode ini.</div>
     </div>
   </div>
@@ -345,7 +350,7 @@ let tasks = [];
 let editingId = null;
 let selectedPic = '';
 
-const STATUS_LABEL = {queuing:'Queuing', ongoing:'Ongoing', onhold:'On Hold', done:'Done'};
+const STATUS_LABEL = {unassigned:'Unassigned', queuing:'Queuing', ongoing:'Ongoing', onhold:'On Hold', done:'Done'};
 const PRIORITY_LABEL = {tinggi:'Tinggi', sedang:'Sedang', rendah:'Rendah'};
 
 function dayDiff(dateStr){
@@ -384,6 +389,7 @@ function pillFor(task){
   if(u === 'dekat') return {cls:'warn', label: diff===0 ? 'Close to Deadline (today)' : `Close to Deadline (${diff}d)`};
   if(u === 'onhold') return {cls:'idle', label:'On Hold'};
   if(u === 'queuing') return {cls:'idle', label:'Queuing'};
+  if(u === 'unassigned') return {cls:'idle', label:'Unassigned'};
   return {cls:'info', label:'Ongoing'};
 }
 
@@ -453,7 +459,6 @@ function resetForm(){
   document.getElementById('f-priority').value = 'sedang';
   document.getElementById('f-deadline').value = '';
   document.getElementById('f-deliverable').value = '';
-  document.getElementById('f-status').value = 'ongoing';
   document.getElementById('f-note').value = '';
   editingId = null;
   document.getElementById('saveBtn').textContent = 'Simpan tugas';
@@ -467,7 +472,6 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
   const priority = document.getElementById('f-priority').value;
   const deadline = document.getElementById('f-deadline').value;
   const deliverable = document.getElementById('f-deliverable').value.trim();
-  const status = document.getElementById('f-status').value;
   const note = document.getElementById('f-note').value.trim();
 
   if(!task || !deadline || !pic){
@@ -479,12 +483,12 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     return;
   }
 
-  const fields = {task, project, pic, priority, deadline, deliverable, status, note};
   try{
     if(editingId){
-      await updateTaskRemote(editingId, fields);
+      // Saat edit, status TIDAK diubah lewat form ini — status diatur lewat dropdown di tabel.
+      await updateTaskRemote(editingId, {task, project, pic, priority, deadline, deliverable, note});
     }else{
-      await addTaskRemote(fields);
+      await addTaskRemote({task, project, pic, priority, deadline, deliverable, note, status: 'unassigned'});
     }
     resetForm();
   }catch(e){
@@ -520,7 +524,6 @@ function editTask(id){
   document.getElementById('f-priority').value = t.priority || 'sedang';
   document.getElementById('f-deadline').value = t.deadline || '';
   document.getElementById('f-deliverable').value = t.deliverable || '';
-  document.getElementById('f-status').value = t.status || 'ongoing';
   document.getElementById('f-note').value = t.note || '';
   editingId = id;
   document.getElementById('saveBtn').textContent = 'Update tugas';
@@ -606,10 +609,10 @@ function renderAssignerTable(){
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td data-label="Task">
-          <div class="task-name">${escapeHtml(t.task)}</div>
-          ${t.project ? `<div class="sub">${escapeHtml(t.project)}</div>` : ''}
+          <div class="task-name cell-clip" title="${escapeHtml(t.task)}">${escapeHtml(t.task)}</div>
+          ${t.project ? `<div class="sub cell-clip" title="${escapeHtml(t.project)}">${escapeHtml(t.project)}</div>` : ''}
         </td>
-        <td data-label="PIC">${escapeHtml(t.pic) || '&mdash;'}</td>
+        <td data-label="PIC"><div class="cell-clip">${escapeHtml(t.pic) || '&mdash;'}</div></td>
         <td data-label="Priority"><span class="pill ${pPill.cls}">${pPill.label}</span></td>
         <td data-label="Deadline">
           <div>${fmtDate(t.deadline)}</div>
@@ -617,6 +620,7 @@ function renderAssignerTable(){
         </td>
         <td data-label="Status">
           <select class="status-select" data-id="${t.id}">
+            <option value="unassigned" ${t.status==='unassigned'?'selected':''}>Unassigned</option>
             <option value="queuing" ${t.status==='queuing'?'selected':''}>Queuing</option>
             <option value="ongoing" ${t.status==='ongoing'?'selected':''}>Ongoing</option>
             <option value="onhold" ${t.status==='onhold'?'selected':''}>On Hold</option>
@@ -624,8 +628,9 @@ function renderAssignerTable(){
           </select>
         </td>
         <td data-label="Deliverable">
-          <div class="sub">${escapeHtml(t.deliverable) || '&mdash;'}</div>
-          ${t.deliverableSubmission ? `<div class="sub" style="color:var(--ok-text);margin-top:4px;">Submit: ${escapeHtml(t.deliverableSubmission)}</div>` : ''}
+          <div class="sub cell-clip" title="${escapeHtml(t.deliverable)}">${escapeHtml(t.deliverable) || '&mdash;'}</div>
+          ${t.deliverableSubmission ? `<div class="sub cell-clip" style="color:var(--ok-text);margin-top:4px;" title="${escapeHtml(t.deliverableSubmission)}">Submit: ${escapeHtml(t.deliverableSubmission)}</div>` : ''}
+          ${t.picNote ? `<div class="sub cell-clip" style="margin-top:4px;" title="${escapeHtml(t.picNote)}">Catatan PIC: ${escapeHtml(t.picNote)}</div>` : ''}
         </td>
         <td data-label="Aksi">
           <div class="row-actions">
@@ -701,6 +706,7 @@ function renderPicView(){
       <div class="tc-section">
         <label>Status pekerjaan</label>
         <select class="status-select pic-status" data-id="${t.id}">
+          <option value="unassigned" ${t.status==='unassigned'?'selected':''}>Unassigned</option>
           <option value="queuing" ${t.status==='queuing'?'selected':''}>Queuing</option>
           <option value="ongoing" ${t.status==='ongoing'?'selected':''}>Ongoing</option>
           <option value="onhold" ${t.status==='onhold'?'selected':''}>On Hold</option>
@@ -709,6 +715,15 @@ function renderPicView(){
       <div class="tc-section">
         <span class="pill ok">Selesai${t.doneAt ? ' — ' + fmtDateTime(t.doneAt) : ''}</span>
       </div>`}
+
+      <div class="tc-section">
+        <label>Catatan singkat pengerjaan (opsional)</label>
+        <div class="tc-row">
+          <input type="text" class="picnote-input" data-id="${t.id}" value="${escapeHtml(t.picNote)}" placeholder="Contoh: masih nunggu data dari tim lain">
+          <button class="btn small" data-save-picnote="${t.id}">Simpan</button>
+        </div>
+        ${t.picNoteUpdatedAt ? `<div class="tc-submitted-at">Terakhir diupdate: ${fmtDateTime(t.picNoteUpdatedAt)}</div>` : ''}
+      </div>
 
       <div class="tc-section">
         <label>Submit deliverable (link atau catatan hasil kerja)</label>
@@ -729,6 +744,19 @@ function renderPicView(){
 
   list.querySelectorAll('.pic-status').forEach(sel => {
     sel.addEventListener('change', () => changeStatus(sel.dataset.id, sel.value));
+  });
+
+  list.querySelectorAll('[data-save-picnote]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.savePicnote;
+      const input = list.querySelector(`.picnote-input[data-id="${id}"]`);
+      const value = input.value.trim();
+      try{
+        await updateTaskRemote(id, {picNote: value, picNoteUpdatedAt: new Date().toISOString()});
+      }catch(e){
+        setSyncStatus('Gagal menyimpan catatan ke Firebase.', true);
+      }
+    });
   });
 
   list.querySelectorAll('[data-submit-deliverable]').forEach(btn => {
@@ -762,7 +790,22 @@ function renderPicView(){
 }
 
 // ---------- Summary view ----------
+function pad2(n){ return String(n).padStart(2, '0'); }
+function toDateStr(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function todayStr(){ return toDateStr(new Date()); }
+
 let currentPeriod = 'daily';
+const periodAnchorInput = document.getElementById('periodAnchor');
+periodAnchorInput.value = todayStr();
+
+periodAnchorInput.addEventListener('change', () => {
+  if(!periodAnchorInput.value) periodAnchorInput.value = todayStr();
+  renderSummary();
+});
+document.getElementById('periodToday').addEventListener('click', () => {
+  periodAnchorInput.value = todayStr();
+  renderSummary();
+});
 
 document.getElementById('periodDaily').addEventListener('click', () => setPeriod('daily'));
 document.getElementById('periodWeekly').addEventListener('click', () => setPeriod('weekly'));
@@ -776,23 +819,22 @@ function setPeriod(period){
   renderSummary();
 }
 
-function getPeriodRange(period){
-  const today = new Date();
-  today.setHours(0,0,0,0);
+function getPeriodRange(period, anchorStr){
+  const anchor = new Date((anchorStr || todayStr()) + 'T00:00:00');
   let start, end;
   if(period === 'daily'){
-    start = new Date(today);
-    end = new Date(today);
+    start = new Date(anchor);
+    end = new Date(anchor);
   }else if(period === 'weekly'){
-    const day = today.getDay(); // 0=Sun..6=Sat
+    const day = anchor.getDay(); // 0=Sun..6=Sat — minggu dimulai hari Senin
     const mondayOffset = day === 0 ? -6 : 1 - day;
-    start = new Date(today);
-    start.setDate(today.getDate() + mondayOffset);
+    start = new Date(anchor);
+    start.setDate(anchor.getDate() + mondayOffset);
     end = new Date(start);
     end.setDate(start.getDate() + 6);
   }else{
-    start = new Date(today.getFullYear(), today.getMonth(), 1);
-    end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    start = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+    end = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
   }
   return {start, end};
 }
@@ -804,10 +846,11 @@ function isWithinRange(dateStr, start, end){
 }
 
 function renderSummary(){
-  const {start, end} = getPeriodRange(currentPeriod);
+  const anchorStr = periodAnchorInput.value || todayStr();
+  const {start, end} = getPeriodRange(currentPeriod, anchorStr);
   const rangeLabel = start.getTime() === end.getTime()
-    ? fmtDate(start.toISOString().slice(0,10))
-    : `${fmtDate(start.toISOString().slice(0,10))} — ${fmtDate(end.toISOString().slice(0,10))}`;
+    ? fmtDate(toDateStr(start))
+    : `${fmtDate(toDateStr(start))} — ${fmtDate(toDateStr(end))}`;
   document.getElementById('periodRangeLabel').textContent = rangeLabel;
 
   const filtered = tasks.filter(t => isWithinRange(t.deadline, start, end))
@@ -844,10 +887,10 @@ function renderSummary(){
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td data-label="Task">
-          <div class="task-name">${escapeHtml(t.task)}</div>
-          ${t.project ? `<div class="sub">${escapeHtml(t.project)}</div>` : ''}
+          <div class="task-name cell-clip" title="${escapeHtml(t.task)}">${escapeHtml(t.task)}</div>
+          ${t.project ? `<div class="sub cell-clip" title="${escapeHtml(t.project)}">${escapeHtml(t.project)}</div>` : ''}
         </td>
-        <td data-label="PIC">${escapeHtml(t.pic) || '&mdash;'}</td>
+        <td data-label="PIC"><div class="cell-clip">${escapeHtml(t.pic) || '&mdash;'}</div></td>
         <td data-label="Priority"><span class="pill ${pPill.cls}">${pPill.label}</span></td>
         <td data-label="Deadline">
           <div>${fmtDate(t.deadline)}</div>
@@ -855,8 +898,9 @@ function renderSummary(){
         </td>
         <td data-label="Status"><span class="pill ${t.status==='done' ? 'ok' : 'idle'}">${STATUS_LABEL[t.status] || t.status}</span></td>
         <td data-label="Deliverable">
-          <div class="sub">${escapeHtml(t.deliverable) || '&mdash;'}</div>
-          ${t.deliverableSubmission ? `<div class="sub" style="color:var(--ok-text);margin-top:4px;">Submit: ${escapeHtml(t.deliverableSubmission)}</div>` : ''}
+          <div class="sub cell-clip" title="${escapeHtml(t.deliverable)}">${escapeHtml(t.deliverable) || '&mdash;'}</div>
+          ${t.deliverableSubmission ? `<div class="sub cell-clip" style="color:var(--ok-text);margin-top:4px;" title="${escapeHtml(t.deliverableSubmission)}">Submit: ${escapeHtml(t.deliverableSubmission)}</div>` : ''}
+          ${t.picNote ? `<div class="sub cell-clip" style="margin-top:4px;" title="${escapeHtml(t.picNote)}">Catatan PIC: ${escapeHtml(t.picNote)}</div>` : ''}
         </td>
       `;
       tbody.appendChild(tr);
