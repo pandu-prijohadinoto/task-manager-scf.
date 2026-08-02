@@ -57,6 +57,9 @@
   }
   .role-tab:hover{border-color:var(--accent);color:var(--text);}
   .role-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 4px 10px rgba(249,129,37,.28);}
+  .role-tab.locked{background:#FFAF59;border-color:#FFAF59;color:#fff;}
+  .role-tab.locked:hover{background:#F5A24A;border-color:#F5A24A;color:#fff;}
+  .role-tab.locked.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 4px 10px rgba(249,129,37,.28);}
 
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
@@ -104,6 +107,27 @@
   .btn.danger-outline:hover{background:var(--danger-border);}
   .submission-box{background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;white-space:pre-wrap;word-break:break-word;}
   .submission-box.readonly{background:transparent;border-style:dashed;color:var(--text-secondary);}
+
+  .gantt-legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+  .legend-item{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-secondary);font-weight:600;}
+  .legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+
+  .gantt-wrap{overflow-x:auto;}
+  #ganttInner{display:inline-block;min-width:100%;}
+  .gantt-header-row{display:flex;position:sticky;top:0;background:var(--surface-alt);z-index:2;border-bottom:1px solid var(--border);}
+  .gantt-label-col{width:230px;min-width:230px;flex-shrink:0;padding:8px 14px;font-size:12px;box-sizing:border-box;}
+  .gantt-header-row .gantt-label-col{font-family:var(--font-display);font-weight:700;color:var(--text-secondary);position:sticky;left:0;background:var(--surface-alt);z-index:3;border-right:1px solid var(--border);}
+  .gantt-day-col{width:26px;min-width:26px;flex-shrink:0;text-align:center;font-size:10px;color:var(--text-muted);padding:8px 0;box-sizing:border-box;border-right:1px solid var(--border);}
+  .gantt-day-col.today{background:var(--accent-light);color:var(--accent);font-weight:800;}
+  .gantt-row{display:flex;border-bottom:1px solid var(--border);min-height:44px;}
+  .gantt-row:hover{background:#FBFBFA;}
+  .gantt-row .gantt-label-col{position:sticky;left:0;background:var(--surface);z-index:1;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center;}
+  .gantt-row:hover .gantt-label-col{background:#FBFBFA;}
+  .gantt-row-task{font-weight:700;font-size:12.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .gantt-row-pic{font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .gantt-track{position:relative;}
+  .gantt-track-bg{display:flex;height:100%;}
+  .gantt-bar{position:absolute;top:8px;bottom:8px;border-radius:100px;color:#fff;display:flex;align-items:center;padding:0 8px;overflow:hidden;white-space:nowrap;font-size:10.5px;font-weight:700;box-shadow:0 2px 5px rgba(0,0,0,.15);}
   .btn.small{padding:5px 10px;font-size:12.5px;}
   .form-actions{margin-top:14px;display:flex;gap:8px;justify-content:flex-end;}
 
@@ -215,10 +239,11 @@
 
   <div class="role-tabs">
     <button class="role-tab active" id="tabSummary">Summary</button>
+    <button class="role-tab" id="tabTimeline">Timeline</button>
     <button class="role-tab" id="tabPic">Task</button>
-    <button class="role-tab" id="tabAction">Action 🔒</button>
-    <button class="role-tab" id="tabTeam">Team 🔒</button>
-    <button class="role-tab" id="tabAssigner">Master 🔒</button>
+    <button class="role-tab locked" id="tabAction">Action</button>
+    <button class="role-tab locked" id="tabTeam">Team</button>
+    <button class="role-tab locked" id="tabAssigner">Master</button>
   </div>
 
   <!-- ============ ASSIGNER VIEW ============ -->
@@ -334,6 +359,28 @@
       </div>
       <div class="task-cards" id="picTaskList"></div>
       <div class="empty" id="picEmpty" style="display:none;">Pilih nama untuk melihat tugas kamu.</div>
+    </div>
+  </div>
+
+  <!-- ============ TIMELINE VIEW (Gantt bulanan) ============ -->
+  <div id="timelineView" style="display:none;">
+    <div class="panel">
+      <div class="toolbar">
+        <button class="btn small" id="timelinePrev">‹ Prev</button>
+        <button class="btn small" id="timelineToday">Bulan ini</button>
+        <button class="btn small" id="timelineNext">Next ›</button>
+        <span id="timelineMonthLabel" class="sub" style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--text);margin-left:8px;"></span>
+        <div class="gantt-legend" style="margin-left:auto;">
+          <span class="legend-item"><span class="legend-dot" style="background:#9AA4AC;"></span>Belum jalan</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#0058C7;"></span>Ongoing</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#F98125;"></span>Waiting Review</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#11224D;"></span>Done</span>
+        </div>
+      </div>
+      <div class="gantt-wrap" id="ganttWrap">
+        <div id="ganttInner"></div>
+      </div>
+      <div class="empty" id="timelineEmpty" style="display:none;">Tidak ada tugas yang berjalan di bulan ini.</div>
     </div>
   </div>
 
@@ -657,6 +704,7 @@ let masterUnlocked = false;
 const VIEWS = {
   tabSummary: 'summaryView',
   tabPic: 'picView',
+  tabTimeline: 'timelineView',
   tabAction: 'actionView',
   tabTeam: 'teamView',
   tabAssigner: 'assignerView'
@@ -669,6 +717,7 @@ function activateView(activeTabId){
   });
   if(activeTabId === 'tabSummary') renderSummary();
   if(activeTabId === 'tabAction') renderActionView();
+  if(activeTabId === 'tabTimeline') renderTimeline();
 }
 
 let pendingTabId = null;
@@ -718,6 +767,7 @@ document.getElementById('pinOverlay').addEventListener('click', (e) => {
 
 document.getElementById('tabAssigner').addEventListener('click', () => switchView('tabAssigner'));
 document.getElementById('tabPic').addEventListener('click', () => switchView('tabPic'));
+document.getElementById('tabTimeline').addEventListener('click', () => switchView('tabTimeline'));
 document.getElementById('tabAction').addEventListener('click', () => switchView('tabAction'));
 document.getElementById('tabTeam').addEventListener('click', () => switchView('tabTeam'));
 document.getElementById('tabSummary').addEventListener('click', () => switchView('tabSummary'));
@@ -759,7 +809,7 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
       // Saat edit, status TIDAK diubah lewat form ini — status diatur lewat dropdown di tabel.
       await updateTaskRemote(editingId, {task, project, pic, priority, deadline, deliverable, note});
     }else{
-      await addTaskRemote({task, project, pic, priority, deadline, deliverable, note, status: 'unassigned'});
+      await addTaskRemote({task, project, pic, priority, deadline, deliverable, note, status: 'unassigned', createdAt: new Date().toISOString()});
     }
     resetForm();
   }catch(e){
@@ -823,6 +873,7 @@ function render(){
   populateMasterPicSelect();
   renderPicView();
   renderActionView();
+  renderTimeline();
   renderSummary();
 }
 
@@ -836,15 +887,20 @@ function renderCards(){
     {label:'Total tugas', num: total, cls:''},
     {label:'Overdue', num: lewat, cls:'danger'},
     {label:'Close to Deadline', num: dekat, cls:'warn'},
-    {label:'Waiting Review', num: waitingReview, cls:'review'},
+    {label:'Waiting Review', num: waitingReview, cls:'review', id:'masterWaitingReviewCard', clickable:true},
     {label:'Done', num: done, cls:'ok'},
   ];
   document.getElementById('cards').innerHTML = cards.map(c => `
-    <div class="card ${c.cls}">
+    <div class="card ${c.cls}" ${c.id ? `id="${c.id}"` : ''} ${c.clickable ? 'style="cursor:pointer;" title="Klik untuk buka tab Action"' : ''}>
       <div class="num">${c.num}</div>
       <div class="label">${c.label}</div>
     </div>
   `).join('');
+
+  const masterWaitingReviewCard = document.getElementById('masterWaitingReviewCard');
+  if(masterWaitingReviewCard){
+    masterWaitingReviewCard.addEventListener('click', () => switchView('tabAction'));
+  }
 }
 
 function getFilteredMasterTasks(){
@@ -1207,6 +1263,121 @@ function renderActionView(){
       }
     });
   });
+}
+
+// ---------- Timeline (Gantt bulanan) ----------
+const DAY_WIDTH = 26;
+let timelineDate = new Date();
+timelineDate.setDate(1);
+
+function daysInMonthOf(year, month){
+  return new Date(year, month + 1, 0).getDate();
+}
+
+function shiftTimelineMonth(delta){
+  timelineDate = new Date(timelineDate.getFullYear(), timelineDate.getMonth() + delta, 1);
+  renderTimeline();
+}
+
+function statusBarColor(status){
+  const map = {
+    unassigned: '#9AA4AC',
+    queuing: '#9AA4AC',
+    onhold: '#9AA4AC',
+    ongoing: '#0058C7',
+    waiting_review: '#F98125',
+    done: '#11224D',
+  };
+  return map[status] || '#9AA4AC';
+}
+
+function taskEffectiveRange(t){
+  if(!t.deadline) return null;
+  const end = new Date(t.deadline + 'T00:00:00');
+  let start = t.createdAt ? isoDateOnly(t.createdAt) : new Date(end);
+  if(start > end) start = new Date(end);
+  return {start, end};
+}
+
+document.getElementById('timelinePrev').addEventListener('click', () => shiftTimelineMonth(-1));
+document.getElementById('timelineNext').addEventListener('click', () => shiftTimelineMonth(1));
+document.getElementById('timelineToday').addEventListener('click', () => {
+  timelineDate = new Date();
+  timelineDate.setDate(1);
+  renderTimeline();
+});
+
+function renderTimeline(){
+  const wrapEl = document.getElementById('ganttInner');
+  const empty = document.getElementById('timelineEmpty');
+  if(!wrapEl) return;
+
+  const year = timelineDate.getFullYear();
+  const month = timelineDate.getMonth();
+  const totalDays = daysInMonthOf(year, month);
+  const monthStart = new Date(year, month, 1);
+  const monthEnd = new Date(year, month, totalDays);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const isCurrentMonthView = today.getFullYear() === year && today.getMonth() === month;
+
+  document.getElementById('timelineMonthLabel').textContent =
+    monthStart.toLocaleDateString('id-ID', {month:'long', year:'numeric'});
+
+  const rows = tasks
+    .map(t => ({t, range: taskEffectiveRange(t)}))
+    .filter(r => r.range && r.range.start <= monthEnd && r.range.end >= monthStart)
+    .sort((a,b) => {
+      const prOrder = {tinggi:0, sedang:1, rendah:2};
+      return (prOrder[a.t.priority] ?? 1) - (prOrder[b.t.priority] ?? 1);
+    });
+
+  if(rows.length === 0){
+    wrapEl.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const clampDay = (d) => {
+    if(d < monthStart) return 1;
+    if(d > monthEnd) return totalDays;
+    return d.getDate();
+  };
+
+  let html = `<div class="gantt-header-row"><div class="gantt-label-col">Task / PIC</div>`;
+  for(let d = 1; d <= totalDays; d++){
+    const isToday = isCurrentMonthView && d === today.getDate();
+    html += `<div class="gantt-day-col ${isToday ? 'today' : ''}">${d}</div>`;
+  }
+  html += `</div>`;
+
+  rows.forEach(({t, range}) => {
+    const startDay = clampDay(range.start);
+    const endDay = Math.max(startDay, clampDay(range.end));
+    const barLeft = (startDay - 1) * DAY_WIDTH;
+    const barWidth = (endDay - startDay + 1) * DAY_WIDTH - 4;
+    const color = statusBarColor(t.status);
+    const label = STATUS_LABEL[t.status] || t.status;
+    const pPill = priorityPill(t.priority);
+
+    html += `
+    <div class="gantt-row">
+      <div class="gantt-label-col">
+        <div class="gantt-row-task" title="${escapeHtml(t.task)}">
+          <span class="pill ${pPill.cls}" style="margin-right:5px;">${pPill.label}</span>${escapeHtml(t.task)}
+        </div>
+        <div class="gantt-row-pic">${escapeHtml(t.pic) || '&mdash;'}</div>
+      </div>
+      <div class="gantt-track" style="width:${totalDays * DAY_WIDTH}px;">
+        <div class="gantt-track-bg">
+          ${Array.from({length: totalDays}).map(() => `<div class="gantt-day-col" style="border-right:1px solid var(--border);height:100%;"></div>`).join('')}
+        </div>
+        <div class="gantt-bar" style="left:${barLeft}px;width:${barWidth}px;background:${color};" title="${escapeHtml(t.task)} — ${label} (${fmtDate(t.deadline)})">${label}</div>
+      </div>
+    </div>`;
+  });
+
+  wrapEl.innerHTML = html;
 }
 
 // ---------- Summary view ----------
