@@ -103,6 +103,7 @@
   .btn.danger-outline{border-color:var(--danger-border);background:var(--danger-bg);color:var(--danger-text);}
   .btn.danger-outline:hover{background:var(--danger-border);}
   .submission-box{background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;white-space:pre-wrap;word-break:break-word;}
+  .submission-box.readonly{background:transparent;border-style:dashed;color:var(--text-secondary);}
   .btn.small{padding:5px 10px;font-size:12.5px;}
   .form-actions{margin-top:14px;display:flex;gap:8px;justify-content:flex-end;}
 
@@ -338,13 +339,8 @@
 
   <!-- ============ ACTION VIEW (review submission PIC) ============ -->
   <div id="actionView" style="display:none;">
-    <div class="panel">
-      <div class="panel-body">
-        <p class="sub" style="margin:0;">Daftar tugas yang sudah disubmit PIC dan menunggu keputusan kamu — Accept untuk menandai selesai, Reject untuk mengembalikan ke status Ongoing.</p>
-      </div>
-    </div>
     <div class="task-cards" id="actionList"></div>
-    <div class="empty" id="actionEmpty" style="display:none;">Tidak ada tugas yang menunggu review saat ini.</div>
+    <div class="empty" id="actionEmpty" style="display:none;">Tidak ada tugas yang butuh approval</div>
   </div>
 
   <!-- ============ TEAM VIEW ============ -->
@@ -369,9 +365,6 @@
   <!-- ============ SUMMARY VIEW ============ -->
   <div id="summaryView">
     <div class="panel">
-      <div class="panel-body" style="padding-bottom:0;">
-        <p class="sub" style="margin:0 0 12px;">Filter berdasarkan tanggal <b>submit</b> atau <b>accept</b> tugas — bukan deadline (kolom deadline tetap ditampilkan sebagai info).</p>
-      </div>
       <div class="toolbar">
         <div class="period-toggle">
           <button class="period-btn active" id="periodDaily" data-period="daily">Daily</button>
@@ -1010,8 +1003,12 @@ function picTaskCardHtml(t){
       </div>
 
       <div class="tc-section">
-        <label>Kendala Pengerjaan: <span style="color:var(--danger-text);">*wajib diisi sebelum submit</span></label>
-        <input type="text" class="workblocker-input" data-id="${t.id}" value="${escapeHtml(t.workBlocker)}" placeholder="Contoh: menunggu data dari tim lain, akses belum ada, dsb" ${isLocked ? 'disabled' : ''}>
+        <label>Kendala Pengerjaan:</label>
+        <div class="tc-row">
+          <input type="text" class="workblocker-input" data-id="${t.id}" value="${escapeHtml(t.workBlocker)}" placeholder="Contoh: menunggu data dari tim lain, akses belum ada, dsb" ${isLocked ? 'disabled' : ''}>
+          <button class="btn small" data-save-blocker="${t.id}" ${isLocked ? 'disabled' : ''}>Simpan</button>
+        </div>
+        ${t.workBlockerUpdatedAt ? `<div class="tc-submitted-at">Terakhir diupdate: ${fmtDateTime(t.workBlockerUpdatedAt)}</div>` : ''}
       </div>
 
       <div class="tc-section">
@@ -1042,7 +1039,7 @@ function renderPicView(){
   if(myTasks.length === 0){
     list.innerHTML = '';
     empty.style.display = 'block';
-    empty.textContent = 'Belum ada tugas untuk kamu.';
+    empty.textContent = 'Kosong';
     return;
   }
 
@@ -1082,6 +1079,19 @@ function renderPicView(){
         await updateTaskRemote(id, {picNote: value, picNoteUpdatedAt: new Date().toISOString()});
       }catch(e){
         setSyncStatus('Gagal menyimpan catatan ke Firebase.', true);
+      }
+    });
+  });
+
+  list.querySelectorAll('[data-save-blocker]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.saveBlocker;
+      const input = list.querySelector(`.workblocker-input[data-id="${id}"]`);
+      const value = input.value.trim();
+      try{
+        await updateTaskRemote(id, {workBlocker: value, workBlockerUpdatedAt: new Date().toISOString()});
+      }catch(e){
+        setSyncStatus('Gagal menyimpan kendala ke Firebase.', true);
       }
     });
   });
@@ -1143,8 +1153,16 @@ function renderActionView(){
       <div class="tc-meta"><b>PIC:</b> ${escapeHtml(t.pic) || '&mdash;'}</div>
       <div class="tc-meta"><b>Deadline:</b> <span style="color:${urgencyTextColor(pill.cls)};font-weight:700;">${fmtDate(t.deadline)}</span></div>
       ${t.deliverable ? `<div class="tc-meta"><b>Ekspektasi deliverable:</b> ${escapeHtml(t.deliverable)}</div>` : ''}
-      ${t.picNote ? `<div class="tc-meta"><b>Deskripsi pekerjaan PIC:</b> ${escapeHtml(t.picNote)}</div>` : ''}
-      ${t.workBlocker ? `<div class="tc-meta"><b>Kendala pengerjaan:</b> ${escapeHtml(t.workBlocker)}</div>` : ''}
+
+      <div class="tc-section">
+        <label>Deskripsi Pekerjaan</label>
+        <div class="submission-box readonly">${escapeHtml(t.picNote) || '&mdash;'}</div>
+      </div>
+
+      <div class="tc-section">
+        <label>Kendala Pengerjaan</label>
+        <div class="submission-box readonly">${escapeHtml(t.workBlocker) || '&mdash;'}</div>
+      </div>
 
       <div class="tc-section">
         <label>Deliverable yang disubmit</label>
@@ -1285,14 +1303,19 @@ function renderSummary(){
     {label:'Total tugas', num: total, cls:''},
     {label:'Overdue', num: lewat, cls:'danger'},
     {label:'Close to Deadline', num: dekat, cls:'warn'},
-    {label:'Waiting Review', num: waitingReview, cls:'review'},
+    {label:'Waiting Review', num: waitingReview, cls:'review', id:'summaryWaitingReviewCard', clickable:true},
     {label:'Done', num: done, cls:'ok'},
   ].map(c => `
-    <div class="card ${c.cls}">
+    <div class="card ${c.cls}" ${c.id ? `id="${c.id}"` : ''} ${c.clickable ? 'style="cursor:pointer;" title="Klik untuk buka tab Action"' : ''}>
       <div class="num">${c.num}</div>
       <div class="label">${c.label}</div>
     </div>
   `).join('');
+
+  const waitingReviewCard = document.getElementById('summaryWaitingReviewCard');
+  if(waitingReviewCard){
+    waitingReviewCard.addEventListener('click', () => switchView('tabAction'));
+  }
 
   const tbody = document.getElementById('summaryBody');
   const empty = document.getElementById('summaryEmpty');
