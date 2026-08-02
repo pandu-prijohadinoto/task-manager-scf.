@@ -143,6 +143,14 @@
   .pic-picker label{font-size:13px;font-weight:600;color:var(--text-secondary);}
   .pic-picker select{width:auto;min-width:220px;}
   .task-cards{display:flex;flex-direction:column;gap:12px;padding:18px;}
+  .history-toggle{margin-top:4px;padding-top:12px;border-top:1px dashed var(--border);}
+  .history-toggle summary{
+    cursor:pointer;font-family:var(--font-display);font-weight:700;font-size:13px;
+    color:var(--text-secondary);list-style:none;padding:6px 0;
+  }
+  .history-toggle summary::-webkit-details-marker{display:none;}
+  .history-toggle summary::before{content:'▸ ';color:var(--accent);}
+  .history-toggle[open] summary::before{content:'▾ ';}
   .task-card{border:1px solid var(--border);border-radius:var(--radius);padding:16px;background:var(--surface);}
   .task-card.done{background:var(--surface-alt);}
   .tc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:8px;}
@@ -934,34 +942,19 @@ function populatePicOptions(){
   }
 }
 
-function renderPicView(){
-  const list = document.getElementById('picTaskList');
-  const empty = document.getElementById('picEmpty');
+function daysSince(iso){
+  if(!iso) return 0;
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+}
+const HIDE_DONE_AFTER_DAYS = 7;
 
-  if(!selectedPic){
-    list.innerHTML = '';
-    empty.style.display = 'block';
-    empty.textContent = 'Pilih nama untuk melihat tugas kamu.';
-    return;
-  }
-
-  const myTasks = tasks.filter(t => t.pic === selectedPic).sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
-
-  if(myTasks.length === 0){
-    list.innerHTML = '';
-    empty.style.display = 'block';
-    empty.textContent = 'Belum ada tugas untuk kamu.';
-    return;
-  }
-
-  empty.style.display = 'none';
-  list.innerHTML = myTasks.map(t => {
-    const pill = pillFor(t);
-    const pPill = priorityPill(t.priority);
-    const isDone = t.status === 'done';
-    const isWaitingReview = t.status === 'waiting_review';
-    const isLocked = isDone; // hanya done yang beneran nggak bisa diapa-apain lagi
-    return `
+function picTaskCardHtml(t){
+  const pill = pillFor(t);
+  const pPill = priorityPill(t.priority);
+  const isDone = t.status === 'done';
+  const isWaitingReview = t.status === 'waiting_review';
+  const isLocked = isDone; // hanya done yang beneran nggak bisa diapa-apain lagi
+  return `
     <div class="task-card ${isDone ? 'done' : ''}">
       <div class="tc-top">
         <div>
@@ -1014,7 +1007,47 @@ function renderPicView(){
       </div>
     </div>
     `;
-  }).join('');
+}
+
+function renderPicView(){
+  const list = document.getElementById('picTaskList');
+  const empty = document.getElementById('picEmpty');
+
+  if(!selectedPic){
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    empty.textContent = 'Pilih nama untuk melihat tugas kamu.';
+    return;
+  }
+
+  const myTasks = tasks.filter(t => t.pic === selectedPic).sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+
+  if(myTasks.length === 0){
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    empty.textContent = 'Belum ada tugas untuk kamu.';
+    return;
+  }
+
+  empty.style.display = 'none';
+
+  const isOldDone = (t) => t.status === 'done' && t.doneAt && daysSince(t.doneAt) > HIDE_DONE_AFTER_DAYS;
+  const visibleTasks = myTasks.filter(t => !isOldDone(t));
+  const historyTasks = myTasks.filter(isOldDone);
+
+  let html = visibleTasks.map(picTaskCardHtml).join('');
+
+  if(historyTasks.length > 0){
+    html += `
+    <details class="history-toggle">
+      <summary>Riwayat — ${historyTasks.length} tugas selesai lebih dari ${HIDE_DONE_AFTER_DAYS} hari lalu</summary>
+      <div class="task-cards" style="padding:12px 0 0;">
+        ${historyTasks.map(picTaskCardHtml).join('')}
+      </div>
+    </details>`;
+  }
+
+  list.innerHTML = html;
 
   list.querySelectorAll('.pic-status').forEach(sel => {
     sel.addEventListener('change', () => {
