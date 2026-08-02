@@ -96,6 +96,8 @@
   .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;border-radius:100px;box-shadow:0 3px 8px rgba(249,129,37,.3);}
   .btn.primary:hover{background:#DD6E15;}
   .btn.primary:disabled{opacity:.5;cursor:not-allowed;}
+  .btn.export{background:#5B8C6E;border-color:#5B8C6E;color:#fff;border-radius:100px;box-shadow:0 3px 8px rgba(91,140,110,.28);padding:4px 12px;font-size:11px;}
+  .btn.export:hover{background:#4A7259;}
   .btn.ghost{border-color:transparent;background:transparent;color:var(--text-secondary);}
   .btn.ghost:hover{background:var(--surface-alt);}
   .btn.danger-outline{border-color:var(--danger-border);background:var(--danger-bg);color:var(--danger-text);}
@@ -298,6 +300,7 @@
           <option value="task">Urut: nama task</option>
           <option value="pic">Urut: PIC</option>
         </select>
+        <button class="btn small export" id="exportMasterBtn" style="margin-left:auto;">⬇ Export</button>
       </div>
       <div class="table-scroll">
       <table>
@@ -377,6 +380,7 @@
         </div>
         <input type="date" id="periodAnchor" style="width:auto;">
         <button class="btn small" id="periodToday">Hari ini</button>
+        <button class="btn small export" id="exportSummaryBtn">⬇ Export</button>
         <span id="periodRangeLabel" class="sub" style="margin-left:auto;"></span>
       </div>
     </div>
@@ -421,6 +425,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // GANTI dengan firebaseConfig dari project Firebase kamu
 const firebaseConfig = {
@@ -849,7 +854,7 @@ function renderCards(){
   `).join('');
 }
 
-function renderAssignerTable(){
+function getFilteredMasterTasks(){
   const search = document.getElementById('search').value.toLowerCase();
   const filter = document.getElementById('filterStatus').value;
   const filterP = document.getElementById('filterPriority').value;
@@ -871,6 +876,12 @@ function renderAssignerTable(){
     if(sortBy === 'priority') return (prOrder[a.priority]??1) - (prOrder[b.priority]??1);
     return new Date(a.deadline) - new Date(b.deadline);
   });
+
+  return filtered;
+}
+
+function renderAssignerTable(){
+  const filtered = getFilteredMasterTasks();
 
   const tbody = document.getElementById('taskBody');
   const empty = document.getElementById('emptyState');
@@ -908,7 +919,8 @@ function renderAssignerTable(){
         <td data-label="Deliverable">
           <div class="sub cell-clip" title="${escapeHtml(t.deliverable)}">${escapeHtml(t.deliverable) || '&mdash;'}</div>
           ${t.deliverableSubmission ? `<div class="sub cell-clip" style="color:var(--ok-text);margin-top:4px;" title="${escapeHtml(t.deliverableSubmission)}">Submit: ${escapeHtml(t.deliverableSubmission)}</div>` : ''}
-          ${t.picNote ? `<div class="sub cell-clip" style="margin-top:4px;" title="${escapeHtml(t.picNote)}">Catatan PIC: ${escapeHtml(t.picNote)}</div>` : ''}
+          ${t.picNote ? `<div class="sub cell-clip" style="margin-top:4px;" title="${escapeHtml(t.picNote)}">Deskripsi: ${escapeHtml(t.picNote)}</div>` : ''}
+          ${t.workBlocker ? `<div class="sub cell-clip" style="margin-top:4px;color:var(--danger-text);" title="${escapeHtml(t.workBlocker)}">Kendala: ${escapeHtml(t.workBlocker)}</div>` : ''}
         </td>
         <td data-label="Aksi">
           <div class="row-actions">
@@ -989,12 +1001,17 @@ function picTaskCardHtml(t){
       </div>`}
 
       <div class="tc-section">
-        <label>Catatan singkat pengerjaan (opsional)</label>
+        <label>Deskripsi Pekerjaan:</label>
         <div class="tc-row">
-          <input type="text" class="picnote-input" data-id="${t.id}" value="${escapeHtml(t.picNote)}" placeholder="Contoh: masih nunggu data dari tim lain" ${isLocked ? 'disabled' : ''}>
+          <input type="text" class="picnote-input" data-id="${t.id}" value="${escapeHtml(t.picNote)}" placeholder="Deskripsi singkat dari pekerjaan yang dilakukan" ${isLocked ? 'disabled' : ''}>
           <button class="btn small" data-save-picnote="${t.id}" ${isLocked ? 'disabled' : ''}>Simpan</button>
         </div>
         ${t.picNoteUpdatedAt ? `<div class="tc-submitted-at">Terakhir diupdate: ${fmtDateTime(t.picNoteUpdatedAt)}</div>` : ''}
+      </div>
+
+      <div class="tc-section">
+        <label>Kendala Pengerjaan: <span style="color:var(--danger-text);">*wajib diisi sebelum submit</span></label>
+        <input type="text" class="workblocker-input" data-id="${t.id}" value="${escapeHtml(t.workBlocker)}" placeholder="Contoh: menunggu data dari tim lain, akses belum ada, dsb" ${isLocked ? 'disabled' : ''}>
       </div>
 
       <div class="tc-section">
@@ -1073,13 +1090,17 @@ function renderPicView(){
     btn.addEventListener('click', async () => {
       const id = btn.dataset.submitDeliverable;
       const textarea = list.querySelector(`.deliverable-input[data-id="${id}"]`);
+      const blockerInput = list.querySelector(`.workblocker-input[data-id="${id}"]`);
       const value = textarea.value.trim();
+      const blockerValue = blockerInput ? blockerInput.value.trim() : '';
       if(!value){ alert('Isi dulu link atau catatan hasil kerjanya.'); return; }
+      if(!blockerValue){ alert('Kolom Kendala Pengerjaan wajib diisi sebelum submit.'); blockerInput.focus(); return; }
       try{
         await updateTaskRemote(id, {
           deliverableSubmission: value,
           deliverableSubmittedAt: new Date().toISOString(),
-          status: 'waiting_review'
+          status: 'waiting_review',
+          workBlocker: blockerValue
         });
       }catch(e){
         setSyncStatus('Gagal menyimpan deliverable ke Firebase.', true);
@@ -1122,7 +1143,8 @@ function renderActionView(){
       <div class="tc-meta"><b>PIC:</b> ${escapeHtml(t.pic) || '&mdash;'}</div>
       <div class="tc-meta"><b>Deadline:</b> <span style="color:${urgencyTextColor(pill.cls)};font-weight:700;">${fmtDate(t.deadline)}</span></div>
       ${t.deliverable ? `<div class="tc-meta"><b>Ekspektasi deliverable:</b> ${escapeHtml(t.deliverable)}</div>` : ''}
-      ${t.picNote ? `<div class="tc-meta"><b>Catatan pengerjaan PIC:</b> ${escapeHtml(t.picNote)}</div>` : ''}
+      ${t.picNote ? `<div class="tc-meta"><b>Deskripsi pekerjaan PIC:</b> ${escapeHtml(t.picNote)}</div>` : ''}
+      ${t.workBlocker ? `<div class="tc-meta"><b>Kendala pengerjaan:</b> ${escapeHtml(t.workBlocker)}</div>` : ''}
 
       <div class="tc-section">
         <label>Deliverable yang disubmit</label>
@@ -1235,6 +1257,14 @@ function latestActivityTime(t){
   return times.length ? Math.max(...times) : 0;
 }
 
+function getFilteredSummaryTasks(){
+  const anchorStr = periodAnchorInput.value || todayStr();
+  const {start, end} = getPeriodRange(currentPeriod, anchorStr);
+  const filtered = tasks.filter(t => activityWithinRange(t, start, end))
+    .sort((a,b) => latestActivityTime(b) - latestActivityTime(a));
+  return {filtered, start, end};
+}
+
 function renderSummary(){
   const anchorStr = periodAnchorInput.value || todayStr();
   const {start, end} = getPeriodRange(currentPeriod, anchorStr);
@@ -1243,8 +1273,7 @@ function renderSummary(){
     : `${fmtDate(toDateStr(start))} — ${fmtDate(toDateStr(end))}`;
   document.getElementById('periodRangeLabel').textContent = rangeLabel;
 
-  const filtered = tasks.filter(t => activityWithinRange(t, start, end))
-    .sort((a,b) => latestActivityTime(b) - latestActivityTime(a));
+  const {filtered} = getFilteredSummaryTasks();
 
   const total = filtered.length;
   const lewat = filtered.filter(t => getUrgency(t) === 'lewat').length;
@@ -1305,6 +1334,74 @@ function renderSummary(){
     });
   }
 }
+
+// ---------- Export Excel ----------
+function taskToExportRowFull(t){
+  return {
+    'Task': t.task || '',
+    'Project': t.project || '',
+    'PIC': t.pic || '',
+    'Priority': PRIORITY_LABEL[t.priority] || t.priority || '',
+    'Deadline': t.deadline || '',
+    'Status': STATUS_LABEL[t.status] || t.status || '',
+    'Deliverable (Ekspektasi)': t.deliverable || '',
+    'Deliverable (Submission)': t.deliverableSubmission || '',
+    'Disubmit Pada': t.deliverableSubmittedAt ? fmtDateTime(t.deliverableSubmittedAt) : '',
+    'Diterima/Selesai Pada': t.doneAt ? fmtDateTime(t.doneAt) : '',
+    'Deskripsi Pekerjaan': t.picNote || '',
+    'Kendala Pengerjaan': t.workBlocker || '',
+    'Catatan Review': t.reviewNote || '',
+    'Note dari Assigner': t.note || '',
+  };
+}
+
+function taskToExportRowSummary(t){
+  return {
+    'Task': t.task || '',
+    'Project': t.project || '',
+    'PIC': t.pic || '',
+    'Priority': PRIORITY_LABEL[t.priority] || t.priority || '',
+    'Deadline': t.deadline || '',
+    'Status': STATUS_LABEL[t.status] || t.status || '',
+    'Deliverable (Ekspektasi)': t.deliverable || '',
+    'Deliverable (Submission)': t.deliverableSubmission || '',
+    'Disubmit Pada': t.deliverableSubmittedAt ? fmtDateTime(t.deliverableSubmittedAt) : '',
+    'Diterima/Selesai Pada': t.doneAt ? fmtDateTime(t.doneAt) : '',
+  };
+}
+
+function downloadExcel(rows, filename){
+  if(typeof XLSX === 'undefined'){
+    alert('Library Excel gagal dimuat. Cek koneksi internet lalu coba lagi.');
+    return;
+  }
+  if(rows.length === 0){
+    alert('Tidak ada data untuk di-export.');
+    return;
+  }
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const colWidths = Object.keys(rows[0]).map(key => ({
+    wch: Math.min(50, Math.max(12, key.length, ...rows.map(r => String(r[key] || '').length)))
+  }));
+  ws['!cols'] = colWidths;
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Data');
+  XLSX.writeFile(wb, filename);
+}
+
+document.getElementById('exportMasterBtn').addEventListener('click', () => {
+  const filtered = getFilteredMasterTasks();
+  const rows = filtered.map(taskToExportRowFull);
+  const dateStr = todayStr();
+  downloadExcel(rows, `rekap-tugas-master-${dateStr}.xlsx`);
+});
+
+document.getElementById('exportSummaryBtn').addEventListener('click', () => {
+  const {filtered} = getFilteredSummaryTasks();
+  const rows = filtered.map(taskToExportRowSummary);
+  const dateStr = todayStr();
+  downloadExcel(rows, `rekap-tugas-summary-${currentPeriod}-${dateStr}.xlsx`);
+});
 
 render();
 startSync();
