@@ -402,7 +402,7 @@
   <div class="modal-box">
     <h3>Masuk sebagai Master</h3>
     <p>Masukkan PIN untuk mengelola tugas.</p>
-    <input type="password" id="pinInput" inputmode="numeric" placeholder="PIN" autocomplete="off">
+    <input type="password" id="pinInput" placeholder="PIN" autocomplete="off">
     <div class="modal-error" id="pinError" style="display:none;">PIN salah, coba lagi.</div>
     <div class="modal-actions">
       <button class="btn ghost" id="pinCancel">Batal</button>
@@ -491,11 +491,55 @@ function priorityPill(p){
   return {cls:'p-med', label:'Sedang'};
 }
 
+function statusSelectStyle(status){
+  const map = {
+    unassigned: {bg:'var(--idle-bg)', text:'var(--idle-text)', border:'var(--idle-border)'},
+    queuing:    {bg:'var(--idle-bg)', text:'var(--idle-text)', border:'var(--idle-border)'},
+    onhold:     {bg:'var(--idle-bg)', text:'var(--idle-text)', border:'var(--idle-border)'},
+    ongoing:    {bg:'var(--info-bg)', text:'var(--info-text)', border:'var(--info-border)'},
+    waiting_review: {bg:'var(--review-bg)', text:'var(--review-text)', border:'var(--review-border)'},
+    done:       {bg:'var(--ok-bg)', text:'var(--ok-text)', border:'var(--ok-border)'},
+  };
+  const c = map[status] || map.unassigned;
+  return `background:${c.bg};color:${c.text};border-color:${c.border};`;
+}
+
+function urgencyTextColor(cls){
+  const map = {
+    danger: 'var(--danger-text)',
+    warn: 'var(--warn-text)',
+    ok: 'var(--ok-text)',
+    review: 'var(--review-text)',
+    info: 'var(--info-text)',
+    idle: 'var(--text)',
+  };
+  return map[cls] || 'var(--text)';
+}
+
+function statusPillCls(status){
+  if(status === 'done') return 'ok';
+  if(status === 'waiting_review') return 'review';
+  if(status === 'ongoing') return 'info';
+  return 'idle'; // unassigned, queuing, onhold
+}
+
 function escapeHtml(str){
   if(!str) return '';
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+function linkifyText(str){
+  if(!str) return '';
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return str.split(urlRegex).map(part => {
+    if(/^https?:\/\//.test(part)){
+      const safeUrl = escapeHtml(part);
+      return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);font-weight:600;word-break:break-all;">${safeUrl}</a>`;
+    }
+    return escapeHtml(part);
+  }).join('');
 }
 
 function setSyncStatus(text, isError){
@@ -601,7 +645,7 @@ async function deleteTaskRemote(id){ await tasksRef.doc(id).delete(); }
 
 // ---------- Role tabs ----------
 // GANTI PIN INI dengan PIN rahasia kamu sendiri
-const MASTER_PIN = "1234";
+const MASTER_PIN = "SC01";
 let masterUnlocked = false;
 
 const VIEWS = {
@@ -840,11 +884,11 @@ function renderAssignerTable(){
         <td data-label="PIC"><div class="cell-clip">${escapeHtml(t.pic) || '&mdash;'}</div></td>
         <td data-label="Priority"><span class="pill ${pPill.cls}">${pPill.label}</span></td>
         <td data-label="Deadline">
-          <div>${fmtDate(t.deadline)}</div>
+          <div style="color:${urgencyTextColor(pill.cls)};font-weight:600;">${fmtDate(t.deadline)}</div>
           <span class="pill ${pill.cls}" style="margin-top:4px;display:inline-block;">${pill.label}</span>
         </td>
         <td data-label="Status">
-          <select class="status-select" data-id="${t.id}">
+          <select class="status-select" data-id="${t.id}" style="${statusSelectStyle(t.status)}">
             <option value="unassigned" ${t.status==='unassigned'?'selected':''}>Unassigned</option>
             <option value="queuing" ${t.status==='queuing'?'selected':''}>Queuing</option>
             <option value="ongoing" ${t.status==='ongoing'?'selected':''}>Ongoing</option>
@@ -870,7 +914,10 @@ function renderAssignerTable(){
 
     tbody.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => editTask(btn.dataset.edit)));
     tbody.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => deleteTask(btn.dataset.delete)));
-    tbody.querySelectorAll('.status-select').forEach(sel => sel.addEventListener('change', () => changeStatus(sel.dataset.id, sel.value)));
+    tbody.querySelectorAll('.status-select').forEach(sel => sel.addEventListener('change', () => {
+      sel.setAttribute('style', statusSelectStyle(sel.value));
+      changeStatus(sel.dataset.id, sel.value);
+    }));
   }
 }
 
@@ -926,7 +973,7 @@ function renderPicView(){
           <span class="pill ${pill.cls}">${pill.label}</span>
         </div>
       </div>
-      <div class="tc-meta"><b>Deadline:</b> ${fmtDate(t.deadline)}</div>
+      <div class="tc-meta"><b>Deadline:</b> <span style="color:${urgencyTextColor(pill.cls)};font-weight:700;">${fmtDate(t.deadline)}</span></div>
       ${t.deliverable ? `<div class="tc-meta"><b>Ekspektasi deliverable:</b> ${escapeHtml(t.deliverable)}</div>` : ''}
       ${t.note ? `<div class="tc-meta"><b>Catatan dari assigner:</b> ${escapeHtml(t.note)}</div>` : ''}
       ${(!isWaitingReview && !isDone && t.reviewNote) ? `<div class="tc-meta" style="color:var(--danger-text);"><b>Catatan review (di-reject):</b> ${escapeHtml(t.reviewNote)}</div>` : ''}
@@ -934,7 +981,7 @@ function renderPicView(){
       ${(!isDone && !isWaitingReview) ? `
       <div class="tc-section">
         <label>Status pekerjaan</label>
-        <select class="status-select pic-status" data-id="${t.id}">
+        <select class="status-select pic-status" data-id="${t.id}" style="${statusSelectStyle(t.status)}">
           <option value="unassigned" ${t.status==='unassigned'?'selected':''}>Unassigned</option>
           <option value="queuing" ${t.status==='queuing'?'selected':''}>Queuing</option>
           <option value="ongoing" ${t.status==='ongoing'?'selected':''}>Ongoing</option>
@@ -942,7 +989,7 @@ function renderPicView(){
         </select>
       </div>` : isWaitingReview ? `
       <div class="tc-section">
-        <span class="pill review">Menunggu review dari Master${t.deliverableSubmittedAt ? ' — disubmit ' + fmtDateTime(t.deliverableSubmittedAt) : ''}</span>
+        <span class="pill review">Sudah disubmit — menunggu approval${t.deliverableSubmittedAt ? ' (' + fmtDateTime(t.deliverableSubmittedAt) + ')' : ''}</span>
       </div>` : `
       <div class="tc-section">
         <span class="pill ok">Selesai${t.doneAt ? ' — ' + fmtDateTime(t.doneAt) : ''}</span>
@@ -970,7 +1017,10 @@ function renderPicView(){
   }).join('');
 
   list.querySelectorAll('.pic-status').forEach(sel => {
-    sel.addEventListener('change', () => changeStatus(sel.dataset.id, sel.value));
+    sel.addEventListener('change', () => {
+      sel.setAttribute('style', statusSelectStyle(sel.value));
+      changeStatus(sel.dataset.id, sel.value);
+    });
   });
 
   list.querySelectorAll('[data-save-picnote]').forEach(btn => {
@@ -1037,7 +1087,7 @@ function renderActionView(){
         </div>
       </div>
       <div class="tc-meta"><b>PIC:</b> ${escapeHtml(t.pic) || '&mdash;'}</div>
-      <div class="tc-meta"><b>Deadline:</b> ${fmtDate(t.deadline)}</div>
+      <div class="tc-meta"><b>Deadline:</b> <span style="color:${urgencyTextColor(pill.cls)};font-weight:700;">${fmtDate(t.deadline)}</span></div>
       ${t.deliverable ? `<div class="tc-meta"><b>Ekspektasi deliverable:</b> ${escapeHtml(t.deliverable)}</div>` : ''}
       ${t.picNote ? `<div class="tc-meta"><b>Catatan pengerjaan PIC:</b> ${escapeHtml(t.picNote)}</div>` : ''}
 
@@ -1207,15 +1257,15 @@ function renderSummary(){
         <td data-label="PIC"><div class="cell-clip">${escapeHtml(t.pic) || '&mdash;'}</div></td>
         <td data-label="Priority"><span class="pill ${pPill.cls}">${pPill.label}</span></td>
         <td data-label="Deadline">
-          <div>${fmtDate(t.deadline)}</div>
+          <div style="color:${urgencyTextColor(pill.cls)};font-weight:600;">${fmtDate(t.deadline)}</div>
           <span class="pill ${pill.cls}" style="margin-top:4px;display:inline-block;">${pill.label}</span>
           ${activityLabel ? `<div class="tc-submitted-at" style="margin-top:4px;">${activityLabel}</div>` : ''}
         </td>
-        <td data-label="Status"><span class="pill ${t.status==='done' ? 'ok' : (t.status==='waiting_review' ? 'review' : 'idle')}">${STATUS_LABEL[t.status] || t.status}</span></td>
+        <td data-label="Status"><span class="pill ${statusPillCls(t.status)}">${STATUS_LABEL[t.status] || t.status}</span></td>
         <td data-label="Deliverable">
-          <div class="sub cell-clip" title="${escapeHtml(t.deliverable)}">${escapeHtml(t.deliverable) || '&mdash;'}</div>
-          ${t.deliverableSubmission ? `<div class="sub cell-clip" style="color:var(--ok-text);margin-top:4px;" title="${escapeHtml(t.deliverableSubmission)}">Submit: ${escapeHtml(t.deliverableSubmission)}</div>` : ''}
-          ${t.picNote ? `<div class="sub cell-clip" style="margin-top:4px;" title="${escapeHtml(t.picNote)}">Catatan PIC: ${escapeHtml(t.picNote)}</div>` : ''}
+          <div class="sub">${linkifyText(t.deliverable) || '&mdash;'}</div>
+          ${t.deliverableSubmission ? `<div class="sub" style="color:var(--ok-text);margin-top:4px;">Submit: ${linkifyText(t.deliverableSubmission)}</div>` : ''}
+          ${t.picNote ? `<div class="sub" style="margin-top:4px;">Catatan PIC: ${linkifyText(t.picNote)}</div>` : ''}
         </td>
       `;
       tbody.appendChild(tr);
