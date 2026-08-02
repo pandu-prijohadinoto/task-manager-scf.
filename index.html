@@ -4,12 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Unit Kerja Supply Chain & Facilities Task Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#FCF5EF;
+    --bg:#F5EEDD;
     --surface:#FFFFFF;
-    --surface-alt:#F7ECE0;
-    --border:#EBDFCF;
+    --surface-alt:#F3E9D8;
+    --border:#E7DAC1;
     --text:#20242B;
     --text-secondary:#5C6773;
     --text-muted:#8D97A1;
@@ -20,11 +23,13 @@
     --danger-bg:#F7DADA; --danger-text:#8C0000; --danger-border:#E3AFAF;
     --idle-bg:#EEEEEC; --idle-text:#5B6459; --idle-border:#D6D9D2;
     --info-bg:#E1EFFF; --info-text:#0058C7; --info-border:#B3D6FF;
+    --review-bg:#FFE8CE; --review-text:#C15D00; --review-border:#F9C48F;
     --p-high-bg:#F7DADA; --p-high-text:#8C0000; --p-high-border:#E3AFAF;
     --p-med-bg:#FFF1D9; --p-med-text:#8A5A0B; --p-med-border:#FFC971;
     --p-low-bg:#EEEEEC; --p-low-text:#5B6459; --p-low-border:#D6D9D2;
-    --radius:10px;
+    --radius:16px;
     --font: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-display: 'Space Grotesk', var(--font);
   }
   *{box-sizing:border-box;}
   body{margin:0;font-family:var(--font);background:var(--bg);color:var(--text);padding:32px 24px 80px;}
@@ -32,36 +37,44 @@
 
   .header{
     display:flex;align-items:flex-end;justify-content:space-between;
-    margin-bottom:20px;flex-wrap:wrap;gap:12px;
-    border-bottom:2px solid var(--accent);padding-bottom:16px;
+    margin-bottom:24px;flex-wrap:wrap;gap:12px;
+    border-bottom:2px solid var(--accent);padding-bottom:18px;
   }
   .header-tag{
-    font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);
-    font-weight:700;background:var(--accent-light);padding:4px 10px;border-radius:100px;
+    font-family:var(--font-display);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);
+    font-weight:700;background:var(--accent-light);padding:5px 12px;border-radius:100px;
   }
-  .header h1{font-size:22px;font-weight:700;margin:8px 0 4px;letter-spacing:-0.01em;}
+  .header h1{font-family:var(--font-display);font-size:30px;font-weight:700;margin:10px 0 4px;letter-spacing:-0.02em;}
   .header p{margin:0;color:var(--text-secondary);font-size:13.5px;}
   #syncStatus{font-size:11.5px;color:var(--text-muted);margin-top:6px;}
 
-  .role-tabs{display:flex;gap:6px;margin-bottom:20px;}
+  .role-tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;}
   .role-tab{
-    padding:9px 18px;border-radius:100px;border:1px solid var(--border);
-    background:var(--surface);color:var(--text-secondary);font-weight:700;font-size:13px;
-    cursor:pointer;
+    font-family:var(--font-display);
+    padding:10px 20px;border-radius:100px;border:1.5px solid var(--border);
+    background:var(--surface);color:var(--text-secondary);font-weight:700;font-size:13.5px;
+    cursor:pointer;transition:background .12s ease,color .12s ease,border-color .12s ease;
   }
-  .role-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .role-tab:hover{border-color:var(--accent);color:var(--text);}
+  .role-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 4px 10px rgba(249,129,37,.28);}
 
-  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
-  .card .num{font-size:26px;font-weight:700;line-height:1.1;}
-  .card .label{font-size:12.5px;color:var(--text-secondary);margin-top:4px;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+  .card .num{font-family:var(--font-display);font-size:28px;font-weight:700;line-height:1.1;}
+  .card .label{font-size:12.5px;color:var(--text-secondary);margin-top:4px;font-weight:600;}
   .card.danger .num{color:var(--danger-text);}
   .card.warn .num{color:var(--warn-text);}
   .card.ok .num{color:var(--ok-text);}
+  .card.review .num{color:var(--review-text);}
+  .card:first-child{
+    background:linear-gradient(135deg, var(--accent) 0%, #FFB25C 100%);
+    border-color:var(--accent);
+  }
+  .card:first-child .num, .card:first-child .label{color:#fff;}
 
   .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:20px;overflow:hidden;}
-  .panel-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
-  .panel-head h2{font-size:14.5px;margin:0;font-weight:700;}
+  .panel-head{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+  .panel-head h2{font-family:var(--font-display);font-size:15px;margin:0;font-weight:700;}
   .panel-body{padding:18px;}
   .chev{transition:transform .15s ease;color:var(--text-muted);font-size:13px;}
   .chev.open{transform:rotate(180deg);}
@@ -71,19 +84,23 @@
   .field.full{grid-column:1/-1;}
   .field label{font-size:12.5px;font-weight:600;color:var(--text-secondary);}
   input[type=text], input[type=date], select, textarea{
-    font-family:var(--font);font-size:13.5px;padding:8px 10px;border:1px solid var(--border);
-    border-radius:7px;background:var(--surface);color:var(--text);outline:none;width:100%;
+    font-family:var(--font);font-size:13.5px;padding:9px 11px;border:1.5px solid var(--border);
+    border-radius:9px;background:var(--surface);color:var(--text);outline:none;width:100%;
   }
   input:focus, select:focus, textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light);}
   textarea{resize:vertical;min-height:52px;font-family:var(--font);}
 
-  .btn{font-family:var(--font);font-size:13.5px;font-weight:600;padding:9px 16px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;}
+  .btn{font-family:var(--font-display);font-size:13.5px;font-weight:700;padding:9px 18px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;transition:transform .08s ease,background .12s ease;}
   .btn:hover{background:var(--surface-alt);}
-  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn:active{transform:scale(.97);}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;border-radius:100px;box-shadow:0 3px 8px rgba(249,129,37,.3);}
   .btn.primary:hover{background:#DD6E15;}
   .btn.primary:disabled{opacity:.5;cursor:not-allowed;}
   .btn.ghost{border-color:transparent;background:transparent;color:var(--text-secondary);}
   .btn.ghost:hover{background:var(--surface-alt);}
+  .btn.danger-outline{border-color:var(--danger-border);background:var(--danger-bg);color:var(--danger-text);}
+  .btn.danger-outline:hover{background:var(--danger-border);}
+  .submission-box{background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;white-space:pre-wrap;word-break:break-word;}
   .btn.small{padding:5px 10px;font-size:12.5px;}
   .form-actions{margin-top:14px;display:flex;gap:8px;justify-content:flex-end;}
 
@@ -104,7 +121,7 @@
   tbody tr:last-child td{border-bottom:none;}
   tbody tr:nth-child(even){background:#FBFBFA;}
   tbody tr:hover{background:var(--accent-light);}
-  .task-name{font-weight:600;}
+  .task-name{font-family:var(--font-display);font-weight:700;}
   .sub{color:var(--text-secondary);font-size:12.5px;margin-top:2px;}
   .cell-clip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
   .pill{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:100px;border:1px solid;white-space:nowrap;}
@@ -113,6 +130,7 @@
   .pill.ok{background:var(--ok-bg);color:var(--ok-text);border-color:var(--ok-border);}
   .pill.idle{background:var(--idle-bg);color:var(--idle-text);border-color:var(--idle-border);}
   .pill.info{background:var(--info-bg);color:var(--info-text);border-color:var(--info-border);}
+  .pill.review{background:var(--review-bg);color:var(--review-text);border-color:var(--review-border);}
   .pill.p-high{background:var(--p-high-bg);color:var(--p-high-text);border-color:var(--p-high-border);}
   .pill.p-med{background:var(--p-med-bg);color:var(--p-med-text);border-color:var(--p-med-border);}
   .pill.p-low{background:var(--p-low-bg);color:var(--p-low-text);border-color:var(--p-low-border);}
@@ -128,7 +146,7 @@
   .task-card{border:1px solid var(--border);border-radius:var(--radius);padding:16px;background:var(--surface);}
   .task-card.done{background:var(--surface-alt);}
   .tc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:8px;}
-  .tc-title{font-size:15px;font-weight:700;}
+  .tc-title{font-family:var(--font-display);font-size:16px;font-weight:700;}
   .tc-project{color:var(--text-secondary);font-size:12.5px;margin-top:2px;}
   .tc-pills{display:flex;gap:6px;flex-wrap:wrap;}
   .tc-meta{font-size:12.5px;color:var(--text-secondary);margin:4px 0;line-height:1.5;}
@@ -139,6 +157,24 @@
   .tc-row textarea{flex:1;}
   .tc-submitted-at{font-size:11.5px;color:var(--text-muted);margin-top:5px;}
   .tc-actions{display:flex;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:8px;}
+
+  .team-list{display:flex;flex-direction:column;gap:8px;padding:18px;}
+  .team-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);}
+  .team-row-name{font-weight:600;font-size:13.5px;}
+
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(32,36,43,.55);
+    display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;
+  }
+  .modal-box{
+    background:var(--surface);border-radius:var(--radius);padding:24px;
+    width:100%;max-width:320px;box-shadow:0 20px 40px rgba(0,0,0,.2);
+  }
+  .modal-box h3{font-family:var(--font-display);margin:0 0 6px;font-size:17px;}
+  .modal-box p{margin:0 0 14px;font-size:13px;color:var(--text-secondary);}
+  .modal-box input{margin-bottom:10px;font-size:16px;letter-spacing:.1em;text-align:center;}
+  .modal-error{color:var(--danger-text);font-size:12.5px;margin-bottom:8px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px;}
 
   @media (max-width:720px){
     .cards{grid-template-columns:repeat(2,1fr);}
@@ -167,13 +203,15 @@
   </div>
 
   <div class="role-tabs">
-    <button class="role-tab active" id="tabAssigner">Master</button>
+    <button class="role-tab active" id="tabSummary">Summary</button>
     <button class="role-tab" id="tabPic">Task</button>
-    <button class="role-tab" id="tabSummary">Summary</button>
+    <button class="role-tab" id="tabAction">Action 🔒</button>
+    <button class="role-tab" id="tabTeam">Team 🔒</button>
+    <button class="role-tab" id="tabAssigner">Master 🔒</button>
   </div>
 
   <!-- ============ ASSIGNER VIEW ============ -->
-  <div id="assignerView">
+  <div id="assignerView" style="display:none;">
 
     <div class="cards" id="cards"></div>
 
@@ -194,7 +232,9 @@
           </div>
           <div class="field">
             <label for="f-pic">PIC</label>
-            <input type="text" id="f-pic" placeholder="Nama orang yang ditugaskan">
+            <select id="f-pic">
+              <option value="">-- Pilih PIC --</option>
+            </select>
           </div>
           <div class="field">
             <label for="f-priority">Priority</label>
@@ -235,6 +275,7 @@
           <option value="queuing">Queuing</option>
           <option value="ongoing">Ongoing</option>
           <option value="onhold">On Hold</option>
+          <option value="waiting_review">Waiting Review</option>
           <option value="done">Done</option>
         </select>
         <select id="filterPriority">
@@ -274,7 +315,7 @@
   <div id="picView" style="display:none;">
     <div class="panel">
       <div class="pic-picker">
-        <label for="picSelect">Saya adalah:</label>
+        <label for="picSelect">Tugas:</label>
         <select id="picSelect">
           <option value="">-- Pilih nama --</option>
         </select>
@@ -284,9 +325,42 @@
     </div>
   </div>
 
-  <!-- ============ SUMMARY VIEW ============ -->
-  <div id="summaryView" style="display:none;">
+  <!-- ============ ACTION VIEW (review submission PIC) ============ -->
+  <div id="actionView" style="display:none;">
     <div class="panel">
+      <div class="panel-body">
+        <p class="sub" style="margin:0;">Daftar tugas yang sudah disubmit PIC dan menunggu keputusan kamu — Accept untuk menandai selesai, Reject untuk mengembalikan ke status Ongoing.</p>
+      </div>
+    </div>
+    <div class="task-cards" id="actionList"></div>
+    <div class="empty" id="actionEmpty" style="display:none;">Tidak ada tugas yang menunggu review saat ini.</div>
+  </div>
+
+  <!-- ============ TEAM VIEW ============ -->
+  <div id="teamView" style="display:none;">
+    <div class="panel">
+      <div class="panel-body">
+        <div class="form-grid" style="grid-template-columns:1fr auto;align-items:end;">
+          <div class="field">
+            <label for="teamNameInput">Nama anggota baru</label>
+            <input type="text" id="teamNameInput" placeholder="Nama lengkap anggota tim">
+          </div>
+          <button class="btn primary" id="teamAddBtn">Tambah ke Team</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="team-list" id="teamList"></div>
+      <div class="empty" id="teamEmpty" style="display:none;">Belum ada anggota tim. Tambahkan lewat form di atas.</div>
+    </div>
+  </div>
+
+  <!-- ============ SUMMARY VIEW ============ -->
+  <div id="summaryView">
+    <div class="panel">
+      <div class="panel-body" style="padding-bottom:0;">
+        <p class="sub" style="margin:0 0 12px;">Filter berdasarkan tanggal <b>submit</b> atau <b>accept</b> tugas — bukan deadline (kolom deadline tetap ditampilkan sebagai info).</p>
+      </div>
       <div class="toolbar">
         <div class="period-toggle">
           <button class="period-btn active" id="periodDaily" data-period="daily">Daily</button>
@@ -317,10 +391,24 @@
         <tbody id="summaryBody"></tbody>
       </table>
       </div>
-      <div class="empty" id="summaryEmpty" style="display:none;">Tidak ada tugas pada periode ini.</div>
+      <div class="empty" id="summaryEmpty" style="display:none;">Tidak ada tugas yang disubmit/accepted pada periode ini.</div>
     </div>
   </div>
 
+</div>
+
+<!-- ============ PIN MODAL (gerbang masuk Master) ============ -->
+<div id="pinOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <h3>Masuk sebagai Master</h3>
+    <p>Masukkan PIN untuk mengelola tugas.</p>
+    <input type="password" id="pinInput" inputmode="numeric" placeholder="PIN" autocomplete="off">
+    <div class="modal-error" id="pinError" style="display:none;">PIN salah, coba lagi.</div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="pinCancel">Batal</button>
+      <button class="btn primary" id="pinSubmit">Masuk</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
@@ -338,19 +426,22 @@ const firebaseConfig = {
 
 let db = null;
 let tasksRef = null;
+let teamRef = null;
 try{
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
   tasksRef = db.collection('tasks');
+  teamRef = db.collection('team');
 }catch(e){
   console.error('Firebase belum dikonfigurasi', e);
 }
 
 let tasks = [];
+let teamMembers = [];
 let editingId = null;
 let selectedPic = '';
 
-const STATUS_LABEL = {unassigned:'Unassigned', queuing:'Queuing', ongoing:'Ongoing', onhold:'On Hold', done:'Done'};
+const STATUS_LABEL = {unassigned:'Unassigned', queuing:'Queuing', ongoing:'Ongoing', onhold:'On Hold', waiting_review:'Waiting Review', done:'Done'};
 const PRIORITY_LABEL = {tinggi:'Tinggi', sedang:'Sedang', rendah:'Rendah'};
 
 function dayDiff(dateStr){
@@ -374,17 +465,18 @@ function fmtDateTime(iso){
 }
 
 function getUrgency(task){
-  if(task.status === 'done') return 'selesai';
+  if(task.status === 'done' || task.status === 'waiting_review') return task.status;
   const diff = dayDiff(task.deadline);
   if(diff < 0) return 'lewat';
   if(diff <= 3) return 'dekat';
-  return task.status; // queuing / ongoing / onhold
+  return task.status; // unassigned / queuing / ongoing / onhold
 }
 
 function pillFor(task){
   const u = getUrgency(task);
   const diff = dayDiff(task.deadline);
-  if(u === 'selesai') return {cls:'ok', label:'Selesai'};
+  if(u === 'done') return {cls:'ok', label:'Selesai'};
+  if(u === 'waiting_review') return {cls:'review', label:'Waiting Review'};
   if(u === 'lewat') return {cls:'danger', label:`Overdue ${Math.abs(diff)}d`};
   if(u === 'dekat') return {cls:'warn', label: diff===0 ? 'Close to Deadline (today)' : `Close to Deadline (${diff}d)`};
   if(u === 'onhold') return {cls:'idle', label:'On Hold'};
@@ -430,25 +522,154 @@ function startSync(){
   });
 }
 
+function startTeamSync(){
+  if(!teamRef) return;
+  teamRef.onSnapshot(snapshot => {
+    teamMembers = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}))
+      .sort((a,b) => (a.name||'').localeCompare(b.name||''));
+    renderTeamList();
+    populatePicOptions();
+    populateMasterPicSelect();
+  }, err => {
+    console.error(err);
+  });
+}
+
+async function addTeamMember(name){ await teamRef.add({name}); }
+async function deleteTeamMember(id){ await teamRef.doc(id).delete(); }
+
+document.getElementById('teamAddBtn').addEventListener('click', async () => {
+  const input = document.getElementById('teamNameInput');
+  const name = input.value.trim();
+  if(!name){ alert('Isi nama anggota dulu.'); return; }
+  if(!teamRef){ alert('Firebase belum dikonfigurasi.'); return; }
+  const exists = teamMembers.some(m => (m.name||'').toLowerCase() === name.toLowerCase());
+  if(exists){ alert('Nama itu sudah ada di Team.'); return; }
+  try{
+    await addTeamMember(name);
+    input.value = '';
+  }catch(e){
+    setSyncStatus('Gagal menambah anggota tim.', true);
+  }
+});
+document.getElementById('teamNameInput').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') document.getElementById('teamAddBtn').click();
+});
+
+function renderTeamList(){
+  const list = document.getElementById('teamList');
+  const empty = document.getElementById('teamEmpty');
+  if(teamMembers.length === 0){
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  list.innerHTML = teamMembers.map(m => `
+    <div class="team-row">
+      <span class="team-row-name">${escapeHtml(m.name)}</span>
+      <button class="btn small ghost" data-remove-team="${m.id}">Hapus</button>
+    </div>
+  `).join('');
+  list.querySelectorAll('[data-remove-team]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if(!confirm(`Hapus "${btn.previousElementSibling.textContent}" dari Team?`)) return;
+      try{ await deleteTeamMember(btn.dataset.removeTeam); }
+      catch(e){ setSyncStatus('Gagal menghapus anggota tim.', true); }
+    });
+  });
+}
+
+function getAllPicNames(){
+  const fromTeam = teamMembers.map(m => m.name).filter(Boolean);
+  const fromTasks = tasks.map(t => t.pic).filter(Boolean);
+  return [...new Set([...fromTeam, ...fromTasks])].sort((a,b) => a.localeCompare(b));
+}
+
+function populateMasterPicSelect(){
+  const sel = document.getElementById('f-pic');
+  const current = sel.value;
+  const names = getAllPicNames();
+  sel.innerHTML = '<option value="">-- Pilih PIC --</option>' +
+    names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  if(names.includes(current)) sel.value = current;
+}
+
 async function addTaskRemote(fields){ await tasksRef.add(fields); }
 async function updateTaskRemote(id, fields){ await tasksRef.doc(id).update(fields); }
 async function deleteTaskRemote(id){ await tasksRef.doc(id).delete(); }
 
 // ---------- Role tabs ----------
+// GANTI PIN INI dengan PIN rahasia kamu sendiri
+const MASTER_PIN = "1234";
+let masterUnlocked = false;
+
 const VIEWS = {
-  tabAssigner: 'assignerView',
+  tabSummary: 'summaryView',
   tabPic: 'picView',
-  tabSummary: 'summaryView'
+  tabAction: 'actionView',
+  tabTeam: 'teamView',
+  tabAssigner: 'assignerView'
 };
-function switchView(activeTabId){
+
+function activateView(activeTabId){
   Object.keys(VIEWS).forEach(tabId => {
     document.getElementById(tabId).classList.toggle('active', tabId === activeTabId);
     document.getElementById(VIEWS[tabId]).style.display = tabId === activeTabId ? 'block' : 'none';
   });
   if(activeTabId === 'tabSummary') renderSummary();
+  if(activeTabId === 'tabAction') renderActionView();
 }
+
+let pendingTabId = null;
+
+function switchView(activeTabId){
+  const needsPin = activeTabId === 'tabAssigner' || activeTabId === 'tabTeam' || activeTabId === 'tabAction';
+  if(needsPin && !masterUnlocked){
+    pendingTabId = activeTabId;
+    openPinModal();
+    return;
+  }
+  activateView(activeTabId);
+}
+
+function openPinModal(){
+  document.getElementById('pinError').style.display = 'none';
+  document.getElementById('pinInput').value = '';
+  document.getElementById('pinOverlay').style.display = 'flex';
+  document.getElementById('pinInput').focus();
+}
+function closePinModal(){
+  document.getElementById('pinOverlay').style.display = 'none';
+  pendingTabId = null;
+}
+function tryUnlockMaster(){
+  const val = document.getElementById('pinInput').value;
+  if(val === MASTER_PIN){
+    masterUnlocked = true;
+    const target = pendingTabId || 'tabAssigner';
+    closePinModal();
+    activateView(target);
+  }else{
+    document.getElementById('pinError').style.display = 'block';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('pinInput').focus();
+  }
+}
+document.getElementById('pinSubmit').addEventListener('click', tryUnlockMaster);
+document.getElementById('pinCancel').addEventListener('click', closePinModal);
+document.getElementById('pinInput').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') tryUnlockMaster();
+  if(e.key === 'Escape') closePinModal();
+});
+document.getElementById('pinOverlay').addEventListener('click', (e) => {
+  if(e.target.id === 'pinOverlay') closePinModal();
+});
+
 document.getElementById('tabAssigner').addEventListener('click', () => switchView('tabAssigner'));
 document.getElementById('tabPic').addEventListener('click', () => switchView('tabPic'));
+document.getElementById('tabAction').addEventListener('click', () => switchView('tabAction'));
+document.getElementById('tabTeam').addEventListener('click', () => switchView('tabTeam'));
 document.getElementById('tabSummary').addEventListener('click', () => switchView('tabSummary'));
 
 // ---------- Assigner form ----------
@@ -549,7 +770,9 @@ function render(){
   renderCards();
   renderAssignerTable();
   populatePicOptions();
+  populateMasterPicSelect();
   renderPicView();
+  renderActionView();
   renderSummary();
 }
 
@@ -557,11 +780,13 @@ function renderCards(){
   const total = tasks.length;
   const lewat = tasks.filter(t => getUrgency(t) === 'lewat').length;
   const dekat = tasks.filter(t => getUrgency(t) === 'dekat').length;
+  const waitingReview = tasks.filter(t => t.status === 'waiting_review').length;
   const done = tasks.filter(t => t.status === 'done').length;
   const cards = [
     {label:'Total tugas', num: total, cls:''},
     {label:'Overdue', num: lewat, cls:'danger'},
     {label:'Close to Deadline', num: dekat, cls:'warn'},
+    {label:'Waiting Review', num: waitingReview, cls:'review'},
     {label:'Done', num: done, cls:'ok'},
   ];
   document.getElementById('cards').innerHTML = cards.map(c => `
@@ -624,6 +849,7 @@ function renderAssignerTable(){
             <option value="queuing" ${t.status==='queuing'?'selected':''}>Queuing</option>
             <option value="ongoing" ${t.status==='ongoing'?'selected':''}>Ongoing</option>
             <option value="onhold" ${t.status==='onhold'?'selected':''}>On Hold</option>
+            <option value="waiting_review" ${t.status==='waiting_review'?'selected':''}>Waiting Review</option>
             <option value="done" ${t.status==='done'?'selected':''}>Done</option>
           </select>
         </td>
@@ -652,7 +878,7 @@ function renderAssignerTable(){
 function populatePicOptions(){
   const sel = document.getElementById('picSelect');
   const current = sel.value;
-  const names = [...new Set(tasks.map(t => t.pic).filter(Boolean))].sort((a,b) => a.localeCompare(b));
+  const names = getAllPicNames();
   sel.innerHTML = '<option value="">-- Pilih nama --</option>' +
     names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
   if(names.includes(current)){
@@ -686,6 +912,8 @@ function renderPicView(){
     const pill = pillFor(t);
     const pPill = priorityPill(t.priority);
     const isDone = t.status === 'done';
+    const isWaitingReview = t.status === 'waiting_review';
+    const isLocked = isDone; // hanya done yang beneran nggak bisa diapa-apain lagi
     return `
     <div class="task-card ${isDone ? 'done' : ''}">
       <div class="tc-top">
@@ -701,8 +929,9 @@ function renderPicView(){
       <div class="tc-meta"><b>Deadline:</b> ${fmtDate(t.deadline)}</div>
       ${t.deliverable ? `<div class="tc-meta"><b>Ekspektasi deliverable:</b> ${escapeHtml(t.deliverable)}</div>` : ''}
       ${t.note ? `<div class="tc-meta"><b>Catatan dari assigner:</b> ${escapeHtml(t.note)}</div>` : ''}
+      ${(!isWaitingReview && !isDone && t.reviewNote) ? `<div class="tc-meta" style="color:var(--danger-text);"><b>Catatan review (di-reject):</b> ${escapeHtml(t.reviewNote)}</div>` : ''}
 
-      ${!isDone ? `
+      ${(!isDone && !isWaitingReview) ? `
       <div class="tc-section">
         <label>Status pekerjaan</label>
         <select class="status-select pic-status" data-id="${t.id}">
@@ -711,6 +940,9 @@ function renderPicView(){
           <option value="ongoing" ${t.status==='ongoing'?'selected':''}>Ongoing</option>
           <option value="onhold" ${t.status==='onhold'?'selected':''}>On Hold</option>
         </select>
+      </div>` : isWaitingReview ? `
+      <div class="tc-section">
+        <span class="pill review">Menunggu review dari Master${t.deliverableSubmittedAt ? ' — disubmit ' + fmtDateTime(t.deliverableSubmittedAt) : ''}</span>
       </div>` : `
       <div class="tc-section">
         <span class="pill ok">Selesai${t.doneAt ? ' — ' + fmtDateTime(t.doneAt) : ''}</span>
@@ -719,8 +951,8 @@ function renderPicView(){
       <div class="tc-section">
         <label>Catatan singkat pengerjaan (opsional)</label>
         <div class="tc-row">
-          <input type="text" class="picnote-input" data-id="${t.id}" value="${escapeHtml(t.picNote)}" placeholder="Contoh: masih nunggu data dari tim lain">
-          <button class="btn small" data-save-picnote="${t.id}">Simpan</button>
+          <input type="text" class="picnote-input" data-id="${t.id}" value="${escapeHtml(t.picNote)}" placeholder="Contoh: masih nunggu data dari tim lain" ${isLocked ? 'disabled' : ''}>
+          <button class="btn small" data-save-picnote="${t.id}" ${isLocked ? 'disabled' : ''}>Simpan</button>
         </div>
         ${t.picNoteUpdatedAt ? `<div class="tc-submitted-at">Terakhir diupdate: ${fmtDateTime(t.picNoteUpdatedAt)}</div>` : ''}
       </div>
@@ -728,15 +960,10 @@ function renderPicView(){
       <div class="tc-section">
         <label>Submit deliverable (link atau catatan hasil kerja)</label>
         <div class="tc-row">
-          <textarea class="deliverable-input" data-id="${t.id}" placeholder="Tempel link Drive/Sheet, atau tulis catatan hasil kerja">${escapeHtml(t.deliverableSubmission)}</textarea>
-          <button class="btn small" data-submit-deliverable="${t.id}">Simpan</button>
+          <textarea class="deliverable-input" data-id="${t.id}" placeholder="Tempel link Drive/Sheet, atau tulis catatan hasil kerja" ${isLocked ? 'disabled' : ''}>${escapeHtml(t.deliverableSubmission)}</textarea>
+          <button class="btn primary small" data-submit-deliverable="${t.id}" ${isLocked ? 'disabled' : ''}>${isWaitingReview ? 'Update & submit ulang' : 'Submit'}</button>
         </div>
         ${t.deliverableSubmittedAt ? `<div class="tc-submitted-at">Terakhir disubmit: ${fmtDateTime(t.deliverableSubmittedAt)}</div>` : ''}
-      </div>
-
-      <div class="tc-actions">
-        <span></span>
-        <button class="btn primary" data-mark-done="${t.id}" ${isDone ? 'disabled' : ''}>${isDone ? 'Sudah selesai' : 'Tandai Selesai'}</button>
       </div>
     </div>
     `;
@@ -766,24 +993,94 @@ function renderPicView(){
       const value = textarea.value.trim();
       if(!value){ alert('Isi dulu link atau catatan hasil kerjanya.'); return; }
       try{
-        await updateTaskRemote(id, {deliverableSubmission: value, deliverableSubmittedAt: new Date().toISOString()});
+        await updateTaskRemote(id, {
+          deliverableSubmission: value,
+          deliverableSubmittedAt: new Date().toISOString(),
+          status: 'waiting_review'
+        });
       }catch(e){
         setSyncStatus('Gagal menyimpan deliverable ke Firebase.', true);
       }
     });
   });
+}
 
-  list.querySelectorAll('[data-mark-done]').forEach(btn => {
+// ---------- Action view (review submission) ----------
+function renderActionView(){
+  const list = document.getElementById('actionList');
+  const empty = document.getElementById('actionEmpty');
+  if(!list) return;
+
+  const pending = tasks.filter(t => t.status === 'waiting_review')
+    .sort((a,b) => new Date(a.deliverableSubmittedAt || 0) - new Date(b.deliverableSubmittedAt || 0));
+
+  if(pending.length === 0){
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  list.innerHTML = pending.map(t => {
+    const pill = pillFor(t);
+    const pPill = priorityPill(t.priority);
+    return `
+    <div class="task-card">
+      <div class="tc-top">
+        <div>
+          <div class="tc-title">${escapeHtml(t.task)}</div>
+          ${t.project ? `<div class="tc-project">${escapeHtml(t.project)}</div>` : ''}
+        </div>
+        <div class="tc-pills">
+          <span class="pill ${pPill.cls}">${pPill.label}</span>
+          <span class="pill ${pill.cls}">${pill.label}</span>
+        </div>
+      </div>
+      <div class="tc-meta"><b>PIC:</b> ${escapeHtml(t.pic) || '&mdash;'}</div>
+      <div class="tc-meta"><b>Deadline:</b> ${fmtDate(t.deadline)}</div>
+      ${t.deliverable ? `<div class="tc-meta"><b>Ekspektasi deliverable:</b> ${escapeHtml(t.deliverable)}</div>` : ''}
+      ${t.picNote ? `<div class="tc-meta"><b>Catatan pengerjaan PIC:</b> ${escapeHtml(t.picNote)}</div>` : ''}
+
+      <div class="tc-section">
+        <label>Deliverable yang disubmit</label>
+        <div class="submission-box">${escapeHtml(t.deliverableSubmission) || '&mdash;'}</div>
+        ${t.deliverableSubmittedAt ? `<div class="tc-submitted-at">Disubmit: ${fmtDateTime(t.deliverableSubmittedAt)}</div>` : ''}
+      </div>
+
+      <div class="tc-section">
+        <label>Catatan untuk PIC (opsional, terutama kalau reject)</label>
+        <input type="text" class="review-note-input" data-id="${t.id}" placeholder="Contoh: tolong lengkapi data bulan Juli">
+      </div>
+
+      <div class="tc-actions">
+        <button class="btn danger-outline" data-reject="${t.id}">Reject</button>
+        <button class="btn primary" data-accept="${t.id}">Accept ✓</button>
+      </div>
+    </div>
+    `;
+  }).join('');
+
+  list.querySelectorAll('[data-reject]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const id = btn.dataset.markDone;
-      const t = tasks.find(x => x.id === id);
-      if(t && !t.deliverableSubmission){
-        if(!confirm('Deliverable belum diisi. Yakin tetap tandai selesai?')) return;
-      }
+      const id = btn.dataset.reject;
+      const note = list.querySelector(`.review-note-input[data-id="${id}"]`).value.trim();
+      if(!confirm('Reject deliverable ini dan kembalikan ke status Ongoing?')) return;
       try{
-        await updateTaskRemote(id, {status: 'done', doneAt: new Date().toISOString()});
+        await updateTaskRemote(id, {status: 'ongoing', reviewNote: note, reviewedAt: new Date().toISOString()});
       }catch(e){
-        setSyncStatus('Gagal menandai selesai di Firebase.', true);
+        setSyncStatus('Gagal reject tugas.', true);
+      }
+    });
+  });
+
+  list.querySelectorAll('[data-accept]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.accept;
+      const note = list.querySelector(`.review-note-input[data-id="${id}"]`).value.trim();
+      try{
+        await updateTaskRemote(id, {status: 'done', doneAt: new Date().toISOString(), reviewNote: note, reviewedAt: new Date().toISOString()});
+      }catch(e){
+        setSyncStatus('Gagal accept tugas.', true);
       }
     });
   });
@@ -839,10 +1136,20 @@ function getPeriodRange(period, anchorStr){
   return {start, end};
 }
 
-function isWithinRange(dateStr, start, end){
-  if(!dateStr) return false;
-  const d = new Date(dateStr + 'T00:00:00');
-  return d >= start && d <= end;
+function isoDateOnly(iso){
+  const d = new Date(iso);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function activityWithinRange(t, start, end){
+  const subOk = t.deliverableSubmittedAt && isoDateOnly(t.deliverableSubmittedAt) >= start && isoDateOnly(t.deliverableSubmittedAt) <= end;
+  const doneOk = t.doneAt && isoDateOnly(t.doneAt) >= start && isoDateOnly(t.doneAt) <= end;
+  return subOk || doneOk;
+}
+function latestActivityTime(t){
+  const times = [];
+  if(t.deliverableSubmittedAt) times.push(new Date(t.deliverableSubmittedAt).getTime());
+  if(t.doneAt) times.push(new Date(t.doneAt).getTime());
+  return times.length ? Math.max(...times) : 0;
 }
 
 function renderSummary(){
@@ -853,18 +1160,20 @@ function renderSummary(){
     : `${fmtDate(toDateStr(start))} — ${fmtDate(toDateStr(end))}`;
   document.getElementById('periodRangeLabel').textContent = rangeLabel;
 
-  const filtered = tasks.filter(t => isWithinRange(t.deadline, start, end))
-    .sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+  const filtered = tasks.filter(t => activityWithinRange(t, start, end))
+    .sort((a,b) => latestActivityTime(b) - latestActivityTime(a));
 
   const total = filtered.length;
   const lewat = filtered.filter(t => getUrgency(t) === 'lewat').length;
   const dekat = filtered.filter(t => getUrgency(t) === 'dekat').length;
+  const waitingReview = filtered.filter(t => t.status === 'waiting_review').length;
   const done = filtered.filter(t => t.status === 'done').length;
 
   document.getElementById('summaryCards').innerHTML = [
     {label:'Total tugas', num: total, cls:''},
     {label:'Overdue', num: lewat, cls:'danger'},
     {label:'Close to Deadline', num: dekat, cls:'warn'},
+    {label:'Waiting Review', num: waitingReview, cls:'review'},
     {label:'Done', num: done, cls:'ok'},
   ].map(c => `
     <div class="card ${c.cls}">
@@ -884,6 +1193,11 @@ function renderSummary(){
     filtered.forEach(t => {
       const pill = pillFor(t);
       const pPill = priorityPill(t.priority);
+      const doneInRange = t.doneAt && isoDateOnly(t.doneAt) >= start && isoDateOnly(t.doneAt) <= end;
+      const subInRange = t.deliverableSubmittedAt && isoDateOnly(t.deliverableSubmittedAt) >= start && isoDateOnly(t.deliverableSubmittedAt) <= end;
+      const activityLabel = doneInRange
+        ? `Accepted: ${fmtDateTime(t.doneAt)}`
+        : (subInRange ? `Submitted: ${fmtDateTime(t.deliverableSubmittedAt)}` : '');
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td data-label="Task">
@@ -895,8 +1209,9 @@ function renderSummary(){
         <td data-label="Deadline">
           <div>${fmtDate(t.deadline)}</div>
           <span class="pill ${pill.cls}" style="margin-top:4px;display:inline-block;">${pill.label}</span>
+          ${activityLabel ? `<div class="tc-submitted-at" style="margin-top:4px;">${activityLabel}</div>` : ''}
         </td>
-        <td data-label="Status"><span class="pill ${t.status==='done' ? 'ok' : 'idle'}">${STATUS_LABEL[t.status] || t.status}</span></td>
+        <td data-label="Status"><span class="pill ${t.status==='done' ? 'ok' : (t.status==='waiting_review' ? 'review' : 'idle')}">${STATUS_LABEL[t.status] || t.status}</span></td>
         <td data-label="Deliverable">
           <div class="sub cell-clip" title="${escapeHtml(t.deliverable)}">${escapeHtml(t.deliverable) || '&mdash;'}</div>
           ${t.deliverableSubmission ? `<div class="sub cell-clip" style="color:var(--ok-text);margin-top:4px;" title="${escapeHtml(t.deliverableSubmission)}">Submit: ${escapeHtml(t.deliverableSubmission)}</div>` : ''}
@@ -910,6 +1225,7 @@ function renderSummary(){
 
 render();
 startSync();
+startTeamSync();
 </script>
 </body>
 </html>
