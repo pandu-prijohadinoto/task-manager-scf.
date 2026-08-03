@@ -1501,7 +1501,12 @@ function getFilteredSummaryTasks(){
   }
 
   if(sortBy === 'deadline_asc'){
-    filtered = filtered.sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+    filtered = filtered.sort((a,b) => {
+      const aDone = a.status === 'done' ? 1 : 0;
+      const bDone = b.status === 'done' ? 1 : 0;
+      if(aDone !== bDone) return aDone - bDone;
+      return new Date(a.deadline) - new Date(b.deadline);
+    });
   }else if(sortBy === 'terlama'){
     // Terlama: urut dari yang paling lama diinput, tugas Done selalu di paling bawah.
     filtered = filtered.sort((a,b) => {
