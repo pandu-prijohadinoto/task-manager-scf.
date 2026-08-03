@@ -135,6 +135,7 @@
   .perf-pie-center{position:absolute;inset:28px;background:var(--surface);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px var(--border);}
   .perf-pie-total{font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--text);line-height:1;}
   .perf-pie-total-label{font-size:11px;color:var(--text-muted);font-weight:600;margin-top:4px;}
+  .perf-pie-ratio{font-size:11px;color:var(--text-secondary);font-weight:700;margin-top:6px;background:var(--surface-alt);padding:2px 10px;border-radius:100px;}
   .perf-stats{flex:1;min-width:240px;display:flex;flex-direction:column;gap:8px;}
   .perf-stat-row{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border:1px solid var(--border);border-radius:10px;background:var(--surface-alt);}
   .perf-stat-label{display:flex;align-items:center;font-weight:600;font-size:13px;color:var(--text);}
@@ -418,8 +419,9 @@
           <div class="perf-pie-wrap">
             <div class="perf-pie-outer" id="perfPie">
               <div class="perf-pie-center">
-                <div class="perf-pie-total" id="perfPieTotal">0</div>
-                <div class="perf-pie-total-label">Total Task</div>
+                <div class="perf-pie-total" id="perfPieTotal">0%</div>
+                <div class="perf-pie-total-label">Completion Rate</div>
+                <div class="perf-pie-ratio" id="perfPieRatio">0/0 Done</div>
               </div>
             </div>
           </div>
@@ -1609,7 +1611,9 @@ function renderPerformance(){
   const gradient = stops.length ? `conic-gradient(${stops.join(', ')})` : 'var(--idle-bg)';
 
   document.getElementById('perfPie').style.background = gradient;
-  document.getElementById('perfPieTotal').textContent = total;
+  const completionRate = Math.round((done / total) * 100);
+  document.getElementById('perfPieTotal').textContent = `${completionRate}%`;
+  document.getElementById('perfPieRatio').textContent = `${done}/${total} Done`;
 
   document.getElementById('perfStats').innerHTML = [
     perfStatRow('Total Task', total, 'var(--text-secondary)'),
