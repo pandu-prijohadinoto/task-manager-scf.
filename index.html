@@ -692,6 +692,7 @@ function startTeamSync(){
     renderTeamList();
     populatePicOptions();
     populateMasterPicSelect();
+    populatePerfPicOptions();
   }, err => {
     console.error(err);
   });
@@ -784,7 +785,7 @@ function activateView(activeTabId){
   if(activeTabId === 'tabSummary') renderSummary();
   if(activeTabId === 'tabAction') renderActionView();
   if(activeTabId === 'tabTimeline') renderTimeline();
-  if(activeTabId === 'tabPerformance') renderPerformance();
+  if(activeTabId === 'tabPerformance'){ populatePerfPicOptions(); renderPerformance(); }
 }
 
 let pendingTabId = null;
@@ -948,9 +949,11 @@ function render(){
   renderAssignerTable();
   populatePicOptions();
   populateMasterPicSelect();
+  populatePerfPicOptions();
   renderPicView();
   renderActionView();
   renderTimeline();
+  renderPerformance();
   renderSummary();
 }
 
@@ -1512,6 +1515,7 @@ perfMonth.setDate(1);
 
 function populatePerfPicOptions(){
   const sel = document.getElementById('perfPicSelect');
+  if(!sel) return;
   const current = sel.value;
   const names = getAllPicNames();
   sel.innerHTML = '<option value="">-- Pilih Team --</option>' +
