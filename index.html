@@ -434,9 +434,8 @@
           <option value="done">Done</option>
         </select>
         <select id="summarySortBy">
-          <option value="activity">🕐 Terbaru Beraktivitas</option>
-          <option value="deadline_asc">⏱️ Deadline Closing In</option>
-          <option value="deadline_desc">🌅 Deadline Masih Jauh</option>
+          <option value="terbaru">Terbaru</option>
+          <option value="deadline_asc">Deadline Closing In</option>
         </select>
       </div>
     </div>
@@ -1502,10 +1501,16 @@ function getFilteredSummaryTasks(){
 
   if(sortBy === 'deadline_asc'){
     filtered = filtered.sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
-  }else if(sortBy === 'deadline_desc'){
-    filtered = filtered.sort((a,b) => new Date(b.deadline) - new Date(a.deadline));
   }else{
-    filtered = filtered.sort((a,b) => latestActivityTime(b) - latestActivityTime(a));
+    // Terbaru: urut dari yang paling baru diinput, tugas Done selalu di paling bawah.
+    filtered = filtered.sort((a,b) => {
+      const aDone = a.status === 'done' ? 1 : 0;
+      const bDone = b.status === 'done' ? 1 : 0;
+      if(aDone !== bDone) return aDone - bDone;
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
   }
 
   return {filtered, start, end};
