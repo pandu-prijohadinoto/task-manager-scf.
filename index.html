@@ -518,11 +518,11 @@ function fmtDateTime(iso){
 }
 
 function getUrgency(task){
-  if(task.status === 'done' || task.status === 'waiting_review') return task.status;
+  if(task.status === 'done' || task.status === 'waiting_review' || task.status === 'onhold') return task.status;
   const diff = dayDiff(task.deadline);
   if(diff < 0) return 'lewat';
   if(diff <= 3) return 'dekat';
-  return task.status; // unassigned / queuing / ongoing / onhold
+  return task.status; // unassigned / queuing / ongoing
 }
 
 function pillFor(task){
@@ -1090,7 +1090,11 @@ function renderPicView(){
     return;
   }
 
-  const myTasks = tasks.filter(t => t.pic === selectedPic).sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+  const myTasks = tasks.filter(t => t.pic === selectedPic).sort((a,b) => {
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return bTime - aTime; // terbaru diinput di paling atas
+  });
 
   if(myTasks.length === 0){
     list.innerHTML = '';
@@ -1328,6 +1332,9 @@ function renderTimeline(){
     .filter(r => r.range && r.range.start <= monthEnd && r.range.end >= monthStart)
     .sort((a,b) => {
       const prOrder = {tinggi:0, sedang:1, rendah:2};
+      const aInactive = (a.t.status === 'done' || a.t.status === 'onhold') ? 1 : 0;
+      const bInactive = (b.t.status === 'done' || b.t.status === 'onhold') ? 1 : 0;
+      if(aInactive !== bInactive) return aInactive - bInactive;
       return (prOrder[a.t.priority] ?? 1) - (prOrder[b.t.priority] ?? 1);
     });
 
