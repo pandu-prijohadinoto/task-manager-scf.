@@ -414,9 +414,9 @@
     <div class="panel">
       <div class="toolbar">
         <div class="period-toggle">
-          <button class="period-btn active" id="periodDaily" data-period="daily">Daily</button>
+          <button class="period-btn active" id="periodMonthly" data-period="monthly">Monthly</button>
           <button class="period-btn" id="periodWeekly" data-period="weekly">Weekly</button>
-          <button class="period-btn" id="periodMonthly" data-period="monthly">Monthly</button>
+          <button class="period-btn" id="periodDaily" data-period="daily">Daily</button>
         </div>
         <input type="date" id="periodAnchor" style="width:auto;">
         <button class="btn small" id="periodToday">Hari ini</button>
@@ -1392,7 +1392,7 @@ function pad2(n){ return String(n).padStart(2, '0'); }
 function toDateStr(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
 function todayStr(){ return toDateStr(new Date()); }
 
-let currentPeriod = 'daily';
+let currentPeriod = 'monthly';
 const periodAnchorInput = document.getElementById('periodAnchor');
 periodAnchorInput.value = todayStr();
 
