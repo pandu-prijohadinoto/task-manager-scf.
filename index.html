@@ -1569,10 +1569,11 @@ function renderPerformance(){
     return d >= monthStart && d <= monthEnd;
   });
 
-  // Cuma tugas yang statusnya masuk salah satu dari 4 kategori berikut yang dihitung.
+  // Ongoing ikut dihitung sebagai kategori resmi, bareng Overdue/Close to Deadline/Waiting Review/Done.
+  // Yang dikeluarkan cuma Queuing, On Hold, dan Unassigned.
   const picTasks = picTasksAll.filter(t => {
     const u = getUrgency(t);
-    return u === 'lewat' || u === 'dekat' || t.status === 'waiting_review' || t.status === 'done';
+    return ['lewat', 'dekat', 'ongoing', 'waiting_review', 'done'].includes(u);
   });
 
   const total = picTasks.length;
@@ -1582,7 +1583,7 @@ function renderPerformance(){
     empty.style.display = 'block';
     empty.textContent = picTasksAll.length === 0
       ? `Belum ada tugas untuk ${selected} di bulan ini.`
-      : `Ada tugas untuk ${selected} di bulan ini, tapi belum ada yang Overdue/Close to Deadline/Waiting Review/Done.`;
+      : `Ada tugas untuk ${selected} di bulan ini, tapi masih Queuing/On Hold/Unassigned semua.`;
     return;
   }
 
@@ -1591,12 +1592,14 @@ function renderPerformance(){
 
   const overdue = picTasks.filter(t => getUrgency(t) === 'lewat').length;
   const closeToDeadline = picTasks.filter(t => getUrgency(t) === 'dekat').length;
+  const ongoing = picTasks.filter(t => getUrgency(t) === 'ongoing').length;
   const waitingReview = picTasks.filter(t => t.status === 'waiting_review').length;
   const done = picTasks.filter(t => t.status === 'done').length;
 
   const segments = [
     {count: overdue, color: '#8C0000'},
     {count: closeToDeadline, color: '#FFC971'},
+    {count: ongoing, color: '#0058C7'},
     {count: waitingReview, color: '#F98125'},
     {count: done, color: '#11224D'},
   ];
@@ -1619,6 +1622,7 @@ function renderPerformance(){
     perfStatRow('Total Task', total, 'var(--text-secondary)'),
     perfStatRow('Overdue', overdue, '#8C0000'),
     perfStatRow('Close to Deadline', closeToDeadline, '#FFC971'),
+    perfStatRow('Ongoing', ongoing, '#0058C7'),
     perfStatRow('Waiting Review', waitingReview, '#F98125'),
     perfStatRow('Done', done, '#11224D'),
   ].join('');
