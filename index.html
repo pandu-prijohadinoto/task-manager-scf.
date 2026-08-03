@@ -267,7 +267,7 @@
             <input type="text" id="f-project" placeholder="Contoh: Laporan Q3">
           </div>
           <div class="field">
-            <label for="f-pic">PIC</label>
+            <label for="f-pic">PIC (opsional — kosongkan untuk Unassigned)</label>
             <select id="f-pic">
               <option value="">-- Pilih PIC --</option>
             </select>
@@ -307,7 +307,6 @@
           <option value="all">Semua status</option>
           <option value="lewat">Overdue</option>
           <option value="dekat">Close to Deadline</option>
-          <option value="unassigned">Unassigned</option>
           <option value="queuing">Queuing</option>
           <option value="ongoing">Ongoing</option>
           <option value="onhold">On Hold</option>
@@ -423,6 +422,23 @@
         <button class="btn small export" id="exportSummaryBtn">⬇ Export</button>
         <span id="periodRangeLabel" class="sub" style="margin-left:auto;"></span>
       </div>
+      <div class="toolbar">
+        <select id="summaryFilterStatus">
+          <option value="all">Semua status</option>
+          <option value="lewat">Overdue</option>
+          <option value="dekat">Close to Deadline</option>
+          <option value="queuing">Queuing</option>
+          <option value="ongoing">Ongoing</option>
+          <option value="onhold">On Hold</option>
+          <option value="waiting_review">Waiting Review</option>
+          <option value="done">Done</option>
+        </select>
+        <select id="summarySortBy">
+          <option value="activity">🕐 Terbaru Beraktivitas</option>
+          <option value="deadline_asc">⏱️ Deadline Closing In</option>
+          <option value="deadline_desc">🌅 Deadline Masih Jauh</option>
+        </select>
+      </div>
     </div>
 
     <div class="cards" id="summaryCards"></div>
@@ -518,11 +534,12 @@ function fmtDateTime(iso){
 }
 
 function getUrgency(task){
+  if(!task.pic) return 'unassigned';
   if(task.status === 'done' || task.status === 'waiting_review' || task.status === 'onhold') return task.status;
   const diff = dayDiff(task.deadline);
   if(diff < 0) return 'lewat';
   if(diff <= 3) return 'dekat';
-  return task.status; // unassigned / queuing / ongoing
+  return task.status; // queuing / ongoing
 }
 
 function pillFor(task){
@@ -795,8 +812,8 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
   const deliverable = document.getElementById('f-deliverable').value.trim();
   const note = document.getElementById('f-note').value.trim();
 
-  if(!task || !deadline || !pic){
-    alert('Task, PIC, dan deadline wajib diisi.');
+  if(!task || !deadline){
+    alert('Task dan deadline wajib diisi.');
     return;
   }
   if(!tasksRef){
@@ -806,10 +823,19 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
 
   try{
     if(editingId){
-      // Saat edit, status TIDAK diubah lewat form ini — status diatur lewat dropdown di tabel.
-      await updateTaskRemote(editingId, {task, project, pic, priority, deadline, deliverable, note});
+      const fields = {task, project, pic, priority, deadline, deliverable, note};
+      // Kalau tugas sebelumnya belum ada PIC dan sekarang baru diisi, otomatis naik ke Queuing.
+      const existing = tasks.find(x => x.id === editingId);
+      if(pic && existing && existing.status === 'unassigned'){
+        fields.status = 'queuing';
+      }
+      await updateTaskRemote(editingId, fields);
     }else{
-      await addTaskRemote({task, project, pic, priority, deadline, deliverable, note, status: 'unassigned', createdAt: new Date().toISOString()});
+      await addTaskRemote({
+        task, project, pic, priority, deadline, deliverable, note,
+        status: pic ? 'queuing' : 'unassigned',
+        createdAt: new Date().toISOString()
+      });
     }
     resetForm();
   }catch(e){
@@ -956,14 +982,14 @@ function renderAssignerTable(){
           <span class="pill ${pill.cls}" style="margin-top:4px;display:inline-block;">${pill.label}</span>
         </td>
         <td data-label="Status">
+          ${!t.pic ? `<span class="pill idle">Unassigned</span>` : `
           <select class="status-select" data-id="${t.id}" style="${statusSelectStyle(t.status)}">
-            <option value="unassigned" ${t.status==='unassigned'?'selected':''}>Unassigned</option>
             <option value="queuing" ${t.status==='queuing'?'selected':''}>Queuing</option>
             <option value="ongoing" ${t.status==='ongoing'?'selected':''}>Ongoing</option>
             <option value="onhold" ${t.status==='onhold'?'selected':''}>On Hold</option>
             <option value="waiting_review" ${t.status==='waiting_review'?'selected':''}>Waiting Review</option>
             <option value="done" ${t.status==='done'?'selected':''}>Done</option>
-          </select>
+          </select>`}
         </td>
         <td data-label="Deliverable">
           <div class="sub cell-clip" title="${escapeHtml(t.deliverable)}">${escapeHtml(t.deliverable) || '&mdash;'}</div>
@@ -1036,7 +1062,6 @@ function picTaskCardHtml(t){
       <div class="tc-section">
         <label>Status pekerjaan</label>
         <select class="status-select pic-status" data-id="${t.id}" style="${statusSelectStyle(t.status)}">
-          <option value="unassigned" ${t.status==='unassigned'?'selected':''}>Unassigned</option>
           <option value="queuing" ${t.status==='queuing'?'selected':''}>Queuing</option>
           <option value="ongoing" ${t.status==='ongoing'?'selected':''}>Ongoing</option>
           <option value="onhold" ${t.status==='onhold'?'selected':''}>On Hold</option>
@@ -1404,6 +1429,8 @@ document.getElementById('periodToday').addEventListener('click', () => {
   periodAnchorInput.value = todayStr();
   renderSummary();
 });
+document.getElementById('summaryFilterStatus').addEventListener('change', renderSummary);
+document.getElementById('summarySortBy').addEventListener('change', renderSummary);
 
 document.getElementById('periodDaily').addEventListener('click', () => setPeriod('daily'));
 document.getElementById('periodWeekly').addEventListener('click', () => setPeriod('weekly'));
@@ -1460,8 +1487,27 @@ function latestActivityTime(t){
 function getFilteredSummaryTasks(){
   const anchorStr = periodAnchorInput.value || todayStr();
   const {start, end} = getPeriodRange(currentPeriod, anchorStr);
-  const filtered = tasks.filter(t => activityWithinRange(t, start, end))
-    .sort((a,b) => latestActivityTime(b) - latestActivityTime(a));
+  const statusFilter = document.getElementById('summaryFilterStatus').value;
+  const sortBy = document.getElementById('summarySortBy').value;
+
+  let filtered = tasks.filter(t => activityWithinRange(t, start, end));
+
+  if(statusFilter !== 'all'){
+    if(['lewat','dekat'].includes(statusFilter)){
+      filtered = filtered.filter(t => getUrgency(t) === statusFilter);
+    }else{
+      filtered = filtered.filter(t => t.status === statusFilter);
+    }
+  }
+
+  if(sortBy === 'deadline_asc'){
+    filtered = filtered.sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+  }else if(sortBy === 'deadline_desc'){
+    filtered = filtered.sort((a,b) => new Date(b.deadline) - new Date(a.deadline));
+  }else{
+    filtered = filtered.sort((a,b) => latestActivityTime(b) - latestActivityTime(a));
+  }
+
   return {filtered, start, end};
 }
 
