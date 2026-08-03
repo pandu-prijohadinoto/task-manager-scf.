@@ -117,7 +117,7 @@
   .gantt-header-row{display:flex;position:sticky;top:0;background:var(--surface-alt);z-index:2;border-bottom:1px solid var(--border);}
   .gantt-label-col{width:230px;min-width:230px;flex-shrink:0;padding:8px 14px;font-size:12px;box-sizing:border-box;}
   .gantt-header-row .gantt-label-col{font-family:var(--font-display);font-weight:700;color:var(--text-secondary);position:sticky;left:0;background:var(--surface-alt);z-index:3;border-right:1px solid var(--border);}
-  .gantt-day-col{width:26px;min-width:26px;flex-shrink:0;text-align:center;font-size:10px;color:var(--text-muted);padding:8px 0;box-sizing:border-box;border-right:1px solid var(--border);}
+  .gantt-day-col{width:26px;min-width:26px;flex-shrink:0;text-align:center;font-size:10px;color:var(--text-muted);padding:8px 0;box-sizing:border-box;border-right:1px solid var(--border);line-height:1.5;}
   .gantt-day-col.today{background:var(--accent-light);color:var(--accent);font-weight:800;}
   .gantt-row{display:flex;border-bottom:1px solid var(--border);min-height:44px;}
   .gantt-row:hover{background:#FBFBFA;}
@@ -128,6 +128,18 @@
   .gantt-track{position:relative;}
   .gantt-track-bg{display:flex;height:100%;}
   .gantt-bar{position:absolute;top:8px;bottom:8px;border-radius:100px;color:#fff;display:flex;align-items:center;padding:0 8px;overflow:hidden;white-space:nowrap;font-size:10.5px;font-weight:700;box-shadow:0 2px 5px rgba(0,0,0,.15);}
+
+  .perf-layout{display:flex;gap:36px;align-items:center;flex-wrap:wrap;}
+  .perf-pie-wrap{flex-shrink:0;}
+  .perf-pie-outer{width:190px;height:190px;border-radius:50%;position:relative;background:var(--idle-bg);box-shadow:0 4px 14px rgba(0,0,0,.08);}
+  .perf-pie-center{position:absolute;inset:28px;background:var(--surface);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px var(--border);}
+  .perf-pie-total{font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--text);line-height:1;}
+  .perf-pie-total-label{font-size:11px;color:var(--text-muted);font-weight:600;margin-top:4px;}
+  .perf-stats{flex:1;min-width:240px;display:flex;flex-direction:column;gap:8px;}
+  .perf-stat-row{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border:1px solid var(--border);border-radius:10px;background:var(--surface-alt);}
+  .perf-stat-label{display:flex;align-items:center;font-weight:600;font-size:13px;color:var(--text);}
+  .perf-stat-label .dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:9px;flex-shrink:0;}
+  .perf-stat-num{font-family:var(--font-display);font-weight:800;font-size:17px;color:var(--text);}
   .btn.small{padding:5px 10px;font-size:12.5px;}
   .form-actions{margin-top:14px;display:flex;gap:8px;justify-content:flex-end;}
 
@@ -240,6 +252,7 @@
   <div class="role-tabs">
     <button class="role-tab active" id="tabSummary">Summary</button>
     <button class="role-tab" id="tabTimeline">Timeline</button>
+    <button class="role-tab" id="tabPerformance">Performance Review</button>
     <button class="role-tab" id="tabPic">Task</button>
     <button class="role-tab locked" id="tabAction">Action</button>
     <button class="role-tab locked" id="tabTeam">Team</button>
@@ -365,8 +378,11 @@
   <div id="timelineView" style="display:none;">
     <div class="panel">
       <div class="toolbar">
+        <div class="period-toggle">
+          <button class="period-btn active" id="timelineModeMonthly" data-mode="monthly">Monthly</button>
+          <button class="period-btn" id="timelineModeWeekly" data-mode="weekly">Weekly</button>
+        </div>
         <button class="btn small" id="timelinePrev">‹ Prev</button>
-        <button class="btn small" id="timelineToday">Bulan ini</button>
         <button class="btn small" id="timelineNext">Next ›</button>
         <span id="timelineMonthLabel" class="sub" style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--text);margin-left:8px;"></span>
         <div class="gantt-legend" style="margin-left:auto;">
@@ -381,6 +397,38 @@
       </div>
       <div class="empty" id="timelineEmpty" style="display:none;">Tidak ada tugas yang berjalan di bulan ini.</div>
     </div>
+  </div>
+
+  <!-- ============ PERFORMANCE REVIEW VIEW ============ -->
+  <div id="performanceView" style="display:none;">
+    <div class="panel">
+      <div class="toolbar">
+        <select id="perfPicSelect">
+          <option value="">-- Pilih Team --</option>
+        </select>
+        <button class="btn small" id="perfPrev">‹ Prev</button>
+        <span id="perfMonthLabel" class="sub" style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--text);min-width:120px;text-align:center;"></span>
+        <button class="btn small" id="perfNext">Next ›</button>
+      </div>
+    </div>
+
+    <div class="panel" id="perfResultPanel" style="display:none;">
+      <div class="panel-body">
+        <div class="perf-layout">
+          <div class="perf-pie-wrap">
+            <div class="perf-pie-outer" id="perfPie">
+              <div class="perf-pie-center">
+                <div class="perf-pie-total" id="perfPieTotal">0</div>
+                <div class="perf-pie-total-label">Total Task</div>
+              </div>
+            </div>
+          </div>
+          <div class="perf-stats" id="perfStats"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="empty" id="perfEmpty">Pilih anggota Team untuk lihat performance review.</div>
   </div>
 
   <!-- ============ ACTION VIEW (review submission PIC) ============ -->
@@ -720,8 +768,9 @@ let masterUnlocked = false;
 
 const VIEWS = {
   tabSummary: 'summaryView',
-  tabPic: 'picView',
   tabTimeline: 'timelineView',
+  tabPerformance: 'performanceView',
+  tabPic: 'picView',
   tabAction: 'actionView',
   tabTeam: 'teamView',
   tabAssigner: 'assignerView'
@@ -735,6 +784,7 @@ function activateView(activeTabId){
   if(activeTabId === 'tabSummary') renderSummary();
   if(activeTabId === 'tabAction') renderActionView();
   if(activeTabId === 'tabTimeline') renderTimeline();
+  if(activeTabId === 'tabPerformance') renderPerformance();
 }
 
 let pendingTabId = null;
@@ -785,6 +835,7 @@ document.getElementById('pinOverlay').addEventListener('click', (e) => {
 document.getElementById('tabAssigner').addEventListener('click', () => switchView('tabAssigner'));
 document.getElementById('tabPic').addEventListener('click', () => switchView('tabPic'));
 document.getElementById('tabTimeline').addEventListener('click', () => switchView('tabTimeline'));
+document.getElementById('tabPerformance').addEventListener('click', () => switchView('tabPerformance'));
 document.getElementById('tabAction').addEventListener('click', () => switchView('tabAction'));
 document.getElementById('tabTeam').addEventListener('click', () => switchView('tabTeam'));
 document.getElementById('tabSummary').addEventListener('click', () => switchView('tabSummary'));
@@ -1294,17 +1345,52 @@ function renderActionView(){
   });
 }
 
-// ---------- Timeline (Gantt bulanan) ----------
-const DAY_WIDTH = 26;
+// ---------- Timeline (Gantt bulanan/mingguan) ----------
+let timelineViewMode = 'monthly'; // 'monthly' | 'weekly'
 let timelineDate = new Date();
-timelineDate.setDate(1);
+timelineDate.setHours(0,0,0,0);
 
 function daysInMonthOf(year, month){
   return new Date(year, month + 1, 0).getDate();
 }
 
-function shiftTimelineMonth(delta){
-  timelineDate = new Date(timelineDate.getFullYear(), timelineDate.getMonth() + delta, 1);
+function getTimelineViewDays(){
+  if(timelineViewMode === 'weekly'){
+    const day = timelineDate.getDay(); // 0=Sun..6=Sat, minggu mulai Senin
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+    const monday = new Date(timelineDate);
+    monday.setDate(timelineDate.getDate() + mondayOffset);
+    const days = [];
+    for(let i = 0; i < 7; i++){
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      days.push(d);
+    }
+    return days;
+  }
+  const year = timelineDate.getFullYear();
+  const month = timelineDate.getMonth();
+  const totalDays = daysInMonthOf(year, month);
+  const days = [];
+  for(let d = 1; d <= totalDays; d++){
+    days.push(new Date(year, month, d));
+  }
+  return days;
+}
+
+function setTimelineMode(mode){
+  timelineViewMode = mode;
+  document.getElementById('timelineModeMonthly').classList.toggle('active', mode === 'monthly');
+  document.getElementById('timelineModeWeekly').classList.toggle('active', mode === 'weekly');
+  renderTimeline();
+}
+
+function shiftTimeline(delta){
+  if(timelineViewMode === 'weekly'){
+    timelineDate = new Date(timelineDate.getFullYear(), timelineDate.getMonth(), timelineDate.getDate() + delta * 7);
+  }else{
+    timelineDate = new Date(timelineDate.getFullYear(), timelineDate.getMonth() + delta, 1);
+  }
   renderTimeline();
 }
 
@@ -1328,33 +1414,36 @@ function taskEffectiveRange(t){
   return {start, end};
 }
 
-document.getElementById('timelinePrev').addEventListener('click', () => shiftTimelineMonth(-1));
-document.getElementById('timelineNext').addEventListener('click', () => shiftTimelineMonth(1));
-document.getElementById('timelineToday').addEventListener('click', () => {
-  timelineDate = new Date();
-  timelineDate.setDate(1);
-  renderTimeline();
-});
+document.getElementById('timelineModeMonthly').addEventListener('click', () => setTimelineMode('monthly'));
+document.getElementById('timelineModeWeekly').addEventListener('click', () => setTimelineMode('weekly'));
+document.getElementById('timelinePrev').addEventListener('click', () => shiftTimeline(-1));
+document.getElementById('timelineNext').addEventListener('click', () => shiftTimeline(1));
 
 function renderTimeline(){
   const wrapEl = document.getElementById('ganttInner');
   const empty = document.getElementById('timelineEmpty');
   if(!wrapEl) return;
 
-  const year = timelineDate.getFullYear();
-  const month = timelineDate.getMonth();
-  const totalDays = daysInMonthOf(year, month);
-  const monthStart = new Date(year, month, 1);
-  const monthEnd = new Date(year, month, totalDays);
+  const viewDays = getTimelineViewDays();
+  const viewStart = viewDays[0];
+  const viewEnd = viewDays[viewDays.length - 1];
+  const totalDays = viewDays.length;
+  const dayWidth = timelineViewMode === 'weekly' ? 100 : 26;
   const today = new Date(); today.setHours(0,0,0,0);
-  const isCurrentMonthView = today.getFullYear() === year && today.getMonth() === month;
+  const WEEKDAY_ID = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
 
-  document.getElementById('timelineMonthLabel').textContent =
-    monthStart.toLocaleDateString('id-ID', {month:'long', year:'numeric'});
+  const labelEl = document.getElementById('timelineMonthLabel');
+  if(timelineViewMode === 'weekly'){
+    const sameMonth = viewStart.getMonth() === viewEnd.getMonth() && viewStart.getFullYear() === viewEnd.getFullYear();
+    const fmtShort = (d) => d.toLocaleDateString('id-ID', {day:'numeric', month: sameMonth ? undefined : 'short'});
+    labelEl.textContent = `${fmtShort(viewStart)} – ${viewEnd.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'})}`;
+  }else{
+    labelEl.textContent = viewStart.toLocaleDateString('id-ID', {month:'long', year:'numeric'});
+  }
 
   const rows = tasks
     .map(t => ({t, range: taskEffectiveRange(t)}))
-    .filter(r => r.range && r.range.start <= monthEnd && r.range.end >= monthStart)
+    .filter(r => r.range && r.range.start <= viewEnd && r.range.end >= viewStart)
     .sort((a,b) => {
       const prOrder = {tinggi:0, sedang:1, rendah:2};
       const aInactive = (a.t.status === 'done' || a.t.status === 'onhold') ? 1 : 0;
@@ -1370,24 +1459,29 @@ function renderTimeline(){
   }
   empty.style.display = 'none';
 
+  const dayIndexOf = (d) => Math.round((d.getTime() - viewStart.getTime()) / 86400000) + 1; // 1-based
+
   const clampDay = (d) => {
-    if(d < monthStart) return 1;
-    if(d > monthEnd) return totalDays;
-    return d.getDate();
+    if(d < viewStart) return 1;
+    if(d > viewEnd) return totalDays;
+    return dayIndexOf(d);
   };
 
   let html = `<div class="gantt-header-row"><div class="gantt-label-col">Task / PIC</div>`;
-  for(let d = 1; d <= totalDays; d++){
-    const isToday = isCurrentMonthView && d === today.getDate();
-    html += `<div class="gantt-day-col ${isToday ? 'today' : ''}">${d}</div>`;
-  }
+  viewDays.forEach(d => {
+    const isToday = d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
+    const label = timelineViewMode === 'weekly'
+      ? `${WEEKDAY_ID[d.getDay()]}<br>${d.getDate()}`
+      : `${d.getDate()}`;
+    html += `<div class="gantt-day-col ${isToday ? 'today' : ''}" style="width:${dayWidth}px;min-width:${dayWidth}px;">${label}</div>`;
+  });
   html += `</div>`;
 
   rows.forEach(({t, range}) => {
     const startDay = clampDay(range.start);
     const endDay = Math.max(startDay, clampDay(range.end));
-    const barLeft = (startDay - 1) * DAY_WIDTH;
-    const barWidth = (endDay - startDay + 1) * DAY_WIDTH - 4;
+    const barLeft = (startDay - 1) * dayWidth;
+    const barWidth = (endDay - startDay + 1) * dayWidth - 4;
     const color = statusBarColor(t.status);
     const label = STATUS_LABEL[t.status] || t.status;
     const pPill = priorityPill(t.priority);
@@ -1400,9 +1494,9 @@ function renderTimeline(){
         </div>
         <div class="gantt-row-pic">${escapeHtml(t.pic) || '&mdash;'}</div>
       </div>
-      <div class="gantt-track" style="width:${totalDays * DAY_WIDTH}px;">
+      <div class="gantt-track" style="width:${totalDays * dayWidth}px;">
         <div class="gantt-track-bg">
-          ${Array.from({length: totalDays}).map(() => `<div class="gantt-day-col" style="border-right:1px solid var(--border);height:100%;"></div>`).join('')}
+          ${viewDays.map(() => `<div class="gantt-day-col" style="width:${dayWidth}px;min-width:${dayWidth}px;border-right:1px solid var(--border);height:100%;"></div>`).join('')}
         </div>
         <div class="gantt-bar" style="left:${barLeft}px;width:${barWidth}px;background:${color};" title="${escapeHtml(t.task)} — ${label} (${fmtDate(t.deadline)})">${label}</div>
       </div>
@@ -1410,6 +1504,110 @@ function renderTimeline(){
   });
 
   wrapEl.innerHTML = html;
+}
+
+// ---------- Performance Review ----------
+let perfMonth = new Date();
+perfMonth.setDate(1);
+
+function populatePerfPicOptions(){
+  const sel = document.getElementById('perfPicSelect');
+  const current = sel.value;
+  const names = getAllPicNames();
+  sel.innerHTML = '<option value="">-- Pilih Team --</option>' +
+    names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  if(names.includes(current)) sel.value = current;
+}
+
+function shiftPerfMonth(delta){
+  perfMonth = new Date(perfMonth.getFullYear(), perfMonth.getMonth() + delta, 1);
+  renderPerformance();
+}
+
+document.getElementById('perfPicSelect').addEventListener('change', renderPerformance);
+document.getElementById('perfPrev').addEventListener('click', () => shiftPerfMonth(-1));
+document.getElementById('perfNext').addEventListener('click', () => shiftPerfMonth(1));
+
+function perfStatRow(label, count, color){
+  return `
+    <div class="perf-stat-row">
+      <span class="perf-stat-label"><span class="dot" style="background:${color};"></span>${label}</span>
+      <span class="perf-stat-num">${count}</span>
+    </div>`;
+}
+
+function renderPerformance(){
+  const labelEl = document.getElementById('perfMonthLabel');
+  const resultPanel = document.getElementById('perfResultPanel');
+  const empty = document.getElementById('perfEmpty');
+  if(!labelEl) return;
+
+  labelEl.textContent = perfMonth.toLocaleDateString('id-ID', {month:'long', year:'numeric'});
+
+  const selected = document.getElementById('perfPicSelect').value;
+  if(!selected){
+    resultPanel.style.display = 'none';
+    empty.style.display = 'block';
+    empty.textContent = 'Pilih anggota Team untuk lihat performance review.';
+    return;
+  }
+
+  const year = perfMonth.getFullYear();
+  const month = perfMonth.getMonth();
+  const monthStart = new Date(year, month, 1);
+  const monthEnd = new Date(year, month, daysInMonthOf(year, month));
+
+  const picTasks = tasks.filter(t => {
+    if(t.pic !== selected || !t.deadline) return false;
+    const d = new Date(t.deadline + 'T00:00:00');
+    return d >= monthStart && d <= monthEnd;
+  });
+
+  const total = picTasks.length;
+
+  if(total === 0){
+    resultPanel.style.display = 'none';
+    empty.style.display = 'block';
+    empty.textContent = `Belum ada tugas untuk ${selected} di bulan ini.`;
+    return;
+  }
+
+  empty.style.display = 'none';
+  resultPanel.style.display = 'block';
+
+  const overdue = picTasks.filter(t => getUrgency(t) === 'lewat').length;
+  const closeToDeadline = picTasks.filter(t => getUrgency(t) === 'dekat').length;
+  const waitingReview = picTasks.filter(t => t.status === 'waiting_review').length;
+  const done = picTasks.filter(t => t.status === 'done').length;
+  const lainnya = Math.max(0, total - overdue - closeToDeadline - waitingReview - done);
+
+  const segments = [
+    {count: overdue, color: '#8C0000'},
+    {count: closeToDeadline, color: '#FFC971'},
+    {count: waitingReview, color: '#F98125'},
+    {count: done, color: '#11224D'},
+    {count: lainnya, color: '#0058C7'},
+  ];
+  let cursor = 0;
+  const stops = [];
+  segments.forEach(s => {
+    if(s.count <= 0) return;
+    const pct = (s.count / total) * 100;
+    stops.push(`${s.color} ${cursor}% ${cursor + pct}%`);
+    cursor += pct;
+  });
+  const gradient = stops.length ? `conic-gradient(${stops.join(', ')})` : 'var(--idle-bg)';
+
+  document.getElementById('perfPie').style.background = gradient;
+  document.getElementById('perfPieTotal').textContent = total;
+
+  document.getElementById('perfStats').innerHTML = [
+    perfStatRow('Total Task', total, 'var(--text-secondary)'),
+    perfStatRow('Overdue', overdue, '#8C0000'),
+    perfStatRow('Close to Deadline', closeToDeadline, '#FFC971'),
+    perfStatRow('Waiting Review', waitingReview, '#F98125'),
+    perfStatRow('Done', done, '#11224D'),
+  ].join('');
 }
 
 // ---------- Summary view ----------
