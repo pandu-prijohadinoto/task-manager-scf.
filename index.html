@@ -1444,7 +1444,11 @@ function isoDateOnly(iso){
 function activityWithinRange(t, start, end){
   const subOk = t.deliverableSubmittedAt && isoDateOnly(t.deliverableSubmittedAt) >= start && isoDateOnly(t.deliverableSubmittedAt) <= end;
   const doneOk = t.doneAt && isoDateOnly(t.doneAt) >= start && isoDateOnly(t.doneAt) <= end;
-  return subOk || doneOk;
+  const deadlineOk = t.deadline && (() => {
+    const d = new Date(t.deadline + 'T00:00:00');
+    return d >= start && d <= end;
+  })();
+  return subOk || doneOk || deadlineOk;
 }
 function latestActivityTime(t){
   const times = [];
@@ -1510,7 +1514,7 @@ function renderSummary(){
       const subInRange = t.deliverableSubmittedAt && isoDateOnly(t.deliverableSubmittedAt) >= start && isoDateOnly(t.deliverableSubmittedAt) <= end;
       const activityLabel = doneInRange
         ? `Accepted: ${fmtDateTime(t.doneAt)}`
-        : (subInRange ? `Submitted: ${fmtDateTime(t.deliverableSubmittedAt)}` : '');
+        : (subInRange ? `Submitted: ${fmtDateTime(t.deliverableSubmittedAt)}` : `Deadline: ${fmtDate(t.deadline)}`);
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td data-label="Task">
