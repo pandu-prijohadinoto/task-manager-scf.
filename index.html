@@ -1561,10 +1561,16 @@ function renderPerformance(){
   const monthStart = new Date(year, month, 1);
   const monthEnd = new Date(year, month, daysInMonthOf(year, month));
 
-  const picTasks = tasks.filter(t => {
+  const picTasksAll = tasks.filter(t => {
     if(t.pic !== selected || !t.deadline) return false;
     const d = new Date(t.deadline + 'T00:00:00');
     return d >= monthStart && d <= monthEnd;
+  });
+
+  // Cuma tugas yang statusnya masuk salah satu dari 4 kategori berikut yang dihitung.
+  const picTasks = picTasksAll.filter(t => {
+    const u = getUrgency(t);
+    return u === 'lewat' || u === 'dekat' || t.status === 'waiting_review' || t.status === 'done';
   });
 
   const total = picTasks.length;
@@ -1572,7 +1578,9 @@ function renderPerformance(){
   if(total === 0){
     resultPanel.style.display = 'none';
     empty.style.display = 'block';
-    empty.textContent = `Belum ada tugas untuk ${selected} di bulan ini.`;
+    empty.textContent = picTasksAll.length === 0
+      ? `Belum ada tugas untuk ${selected} di bulan ini.`
+      : `Ada tugas untuk ${selected} di bulan ini, tapi belum ada yang Overdue/Close to Deadline/Waiting Review/Done.`;
     return;
   }
 
@@ -1583,14 +1591,12 @@ function renderPerformance(){
   const closeToDeadline = picTasks.filter(t => getUrgency(t) === 'dekat').length;
   const waitingReview = picTasks.filter(t => t.status === 'waiting_review').length;
   const done = picTasks.filter(t => t.status === 'done').length;
-  const lainnya = Math.max(0, total - overdue - closeToDeadline - waitingReview - done);
 
   const segments = [
     {count: overdue, color: '#8C0000'},
     {count: closeToDeadline, color: '#FFC971'},
     {count: waitingReview, color: '#F98125'},
     {count: done, color: '#11224D'},
-    {count: lainnya, color: '#0058C7'},
   ];
   let cursor = 0;
   const stops = [];
