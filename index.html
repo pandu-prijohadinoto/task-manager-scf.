@@ -1172,9 +1172,12 @@ function renderPicView(){
   }
 
   const myTasks = tasks.filter(t => t.pic === selectedPic).sort((a,b) => {
+    const aDone = a.status === 'done' ? 1 : 0;
+    const bDone = b.status === 'done' ? 1 : 0;
+    if(aDone !== bDone) return aDone - bDone; // Done selalu di paling bawah
     const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
     const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-    return bTime - aTime; // terbaru diinput di paling atas
+    return bTime - aTime; // sisanya: terbaru diinput di paling atas
   });
 
   if(myTasks.length === 0){
