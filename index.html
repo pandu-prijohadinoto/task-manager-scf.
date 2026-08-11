@@ -143,17 +143,17 @@
   .perf-stat-num{font-family:var(--font-display);font-weight:800;font-size:17px;color:var(--text);}
 
   /* Varian compact (setengah ukuran) untuk pie di tab Task */
-  .perf-compact{gap:28px;}
-  .perf-pie-outer.sm{width:140px;height:140px;box-shadow:0 3px 10px rgba(0,0,0,.08);}
-  .perf-pie-center.sm{inset:20px;}
-  .perf-pie-total.sm{font-size:22px;}
-  .perf-pie-total-label.sm{font-size:10px;margin-top:3px;}
-  .perf-pie-ratio.sm{font-size:10px;padding:2px 8px;margin-top:5px;}
-  .perf-stats.sm{gap:7px;min-width:220px;}
-  .perf-stats.sm .perf-stat-row{padding:9px 14px;border-radius:9px;}
-  .perf-stats.sm .perf-stat-label{font-size:12.5px;}
+  .perf-compact{display:grid;grid-template-columns:40% 60%;gap:16px;align-items:center;}
+  .perf-pie-outer.sm{width:180px;height:180px;box-shadow:0 4px 12px rgba(0,0,0,.08);margin:0 auto;}
+  .perf-pie-center.sm{inset:26px;}
+  .perf-pie-total.sm{font-size:27px;}
+  .perf-pie-total-label.sm{font-size:11px;margin-top:3px;}
+  .perf-pie-ratio.sm{font-size:11px;padding:2px 9px;margin-top:6px;}
+  .perf-stats.sm{gap:8px;min-width:0;}
+  .perf-stats.sm .perf-stat-row{padding:10px 16px;border-radius:9px;}
+  .perf-stats.sm .perf-stat-label{font-size:13px;}
   .perf-stats.sm .perf-stat-label .dot{width:9px;height:9px;margin-right:8px;}
-  .perf-stats.sm .perf-stat-num{font-size:15px;}
+  .perf-stats.sm .perf-stat-num{font-size:16px;}
   .btn.small{padding:5px 10px;font-size:12.5px;}
   .form-actions{margin-top:14px;display:flex;gap:8px;justify-content:flex-end;}
 
@@ -440,6 +440,9 @@
         <button class="btn small" id="timelinePrev">‹ Prev</button>
         <button class="btn small" id="timelineNext">Next ›</button>
         <span id="timelineMonthLabel" class="sub" style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--text);margin-left:8px;"></span>
+        <select id="timelinePicFilter">
+          <option value="all">Semua Team</option>
+        </select>
         <div class="gantt-legend" style="margin-left:auto;">
           <span class="legend-item"><span class="legend-dot" style="background:#9AA4AC;"></span>Belum jalan</span>
           <span class="legend-item"><span class="legend-dot" style="background:#0058C7;"></span>Ongoing</span>
@@ -715,6 +718,7 @@ function startTeamSync(){
     renderTeamList();
     populatePicOptions();
     populateMasterPicSelect();
+    populateTimelinePicFilter();
   }, err => {
     console.error(err);
   });
@@ -982,6 +986,7 @@ function render(){
   renderAssignerTable();
   populatePicOptions();
   populateMasterPicSelect();
+  populateTimelinePicFilter();
   renderPicView();
   renderActionView();
   renderTimeline();
@@ -1454,6 +1459,17 @@ function daysInMonthOf(year, month){
   return new Date(year, month + 1, 0).getDate();
 }
 
+function populateTimelinePicFilter(){
+  const sel = document.getElementById('timelinePicFilter');
+  if(!sel) return;
+  const current = sel.value || 'all';
+  const names = getAllPicNames();
+  sel.innerHTML = '<option value="all">Semua Team</option>' +
+    names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  if(current === 'all' || names.includes(current)) sel.value = current;
+}
+document.getElementById('timelinePicFilter').addEventListener('change', renderTimeline);
+
 function getTimelineViewDays(){
   if(timelineViewMode === 'weekly'){
     const day = timelineDate.getDay(); // 0=Sun..6=Sat, minggu mulai Senin
@@ -1541,7 +1557,10 @@ function renderTimeline(){
     labelEl.textContent = viewStart.toLocaleDateString('id-ID', {month:'long', year:'numeric'});
   }
 
+  const picFilter = document.getElementById('timelinePicFilter').value;
+
   const rows = tasks
+    .filter(t => picFilter === 'all' || t.pic === picFilter)
     .map(t => ({t, range: taskEffectiveRange(t)}))
     .filter(r => r.range && r.range.start <= viewEnd && r.range.end >= viewStart)
     .sort((a,b) => {
