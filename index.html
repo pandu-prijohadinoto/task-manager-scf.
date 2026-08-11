@@ -260,6 +260,9 @@
     tbody td{border-bottom:none;padding:4px 14px;}
     tbody td:before{content:attr(data-label);display:block;font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:2px;}
     .cell-clip{white-space:normal;}
+    .perf-compact{grid-template-columns:1fr;justify-items:center;}
+    .perf-pie-outer.sm{width:min(220px, 70vw);}
+    .perf-stats.sm{width:100%;}
   }
 </style>
 </head>
@@ -406,7 +409,7 @@
     </div>
 
     <div class="panel" id="perfResultPanel" style="display:none;">
-      <div class="panel-body" style="padding:24px 28px;">
+      <div class="panel-body" style="padding:24px 40px 24px 28px;">
         <div class="perf-layout perf-compact">
           <div class="perf-pie-wrap">
             <div class="perf-pie-outer sm" id="perfPie">
