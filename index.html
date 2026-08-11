@@ -141,6 +141,19 @@
   .perf-stat-label{display:flex;align-items:center;font-weight:600;font-size:13px;color:var(--text);}
   .perf-stat-label .dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:9px;flex-shrink:0;}
   .perf-stat-num{font-family:var(--font-display);font-weight:800;font-size:17px;color:var(--text);}
+
+  /* Varian compact (setengah ukuran) untuk pie di tab Task */
+  .perf-compact{gap:18px;}
+  .perf-pie-outer.sm{width:95px;height:95px;box-shadow:0 2px 7px rgba(0,0,0,.08);}
+  .perf-pie-center.sm{inset:14px;}
+  .perf-pie-total.sm{font-size:14px;}
+  .perf-pie-total-label.sm{font-size:7px;margin-top:2px;}
+  .perf-pie-ratio.sm{font-size:7px;padding:1px 6px;margin-top:3px;}
+  .perf-stats.sm{gap:4px;min-width:180px;}
+  .perf-stats.sm .perf-stat-row{padding:6px 10px;border-radius:7px;}
+  .perf-stats.sm .perf-stat-label{font-size:11px;}
+  .perf-stats.sm .perf-stat-label .dot{width:7px;height:7px;margin-right:6px;}
+  .perf-stats.sm .perf-stat-num{font-size:12.5px;}
   .btn.small{padding:5px 10px;font-size:12.5px;}
   .form-actions{margin-top:14px;display:flex;gap:8px;justify-content:flex-end;}
 
@@ -264,7 +277,6 @@
   <div class="role-tabs">
     <button class="role-tab active" id="tabSummary">Summary</button>
     <button class="role-tab" id="tabTimeline">Timeline</button>
-    <button class="role-tab" id="tabPerformance">Performance Review</button>
     <button class="role-tab" id="tabPic">Task</button>
     <button class="role-tab locked" id="tabAction">Action</button>
     <button class="role-tab locked" id="tabTeam">Team</button>
@@ -379,7 +391,7 @@
     </div>
   </div>
 
-  <!-- ============ PIC VIEW ============ -->
+  <!-- ============ PIC VIEW (Task + Performance Review) ============ -->
   <div id="picView" style="display:none;">
     <div class="panel">
       <div class="pic-picker">
@@ -387,7 +399,31 @@
         <select id="picSelect">
           <option value="">-- Pilih nama --</option>
         </select>
+        <button class="btn small" id="perfPrev" style="margin-left:auto;">‹ Prev</button>
+        <span id="perfMonthLabel" class="sub" style="font-family:var(--font-display);font-weight:700;font-size:13px;color:var(--text);min-width:100px;text-align:center;"></span>
+        <button class="btn small" id="perfNext">Next ›</button>
       </div>
+    </div>
+
+    <div class="panel" id="perfResultPanel" style="display:none;">
+      <div class="panel-body" style="padding:12px 16px;">
+        <div class="perf-layout perf-compact">
+          <div class="perf-pie-wrap">
+            <div class="perf-pie-outer sm" id="perfPie">
+              <div class="perf-pie-center sm">
+                <div class="perf-pie-total sm" id="perfPieTotal">0%</div>
+                <div class="perf-pie-total-label sm">Completion Rate</div>
+                <div class="perf-pie-ratio sm" id="perfPieRatio">0/0 Done</div>
+              </div>
+            </div>
+          </div>
+          <div class="perf-stats sm" id="perfStats"></div>
+        </div>
+        <div class="empty" id="perfEmpty" style="display:none;padding:10px 0 0;"></div>
+      </div>
+    </div>
+
+    <div class="panel">
       <div class="task-cards" id="picTaskList"></div>
       <div class="empty" id="picEmpty" style="display:none;">Pilih nama untuk melihat tugas kamu.</div>
     </div>
@@ -416,39 +452,6 @@
       </div>
       <div class="empty" id="timelineEmpty" style="display:none;">Tidak ada tugas yang berjalan di bulan ini.</div>
     </div>
-  </div>
-
-  <!-- ============ PERFORMANCE REVIEW VIEW ============ -->
-  <div id="performanceView" style="display:none;">
-    <div class="panel">
-      <div class="toolbar">
-        <select id="perfPicSelect">
-          <option value="">-- Pilih Team --</option>
-        </select>
-        <button class="btn small" id="perfPrev">‹ Prev</button>
-        <span id="perfMonthLabel" class="sub" style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--text);min-width:120px;text-align:center;"></span>
-        <button class="btn small" id="perfNext">Next ›</button>
-      </div>
-    </div>
-
-    <div class="panel" id="perfResultPanel" style="display:none;">
-      <div class="panel-body">
-        <div class="perf-layout">
-          <div class="perf-pie-wrap">
-            <div class="perf-pie-outer" id="perfPie">
-              <div class="perf-pie-center">
-                <div class="perf-pie-total" id="perfPieTotal">0%</div>
-                <div class="perf-pie-total-label">Completion Rate</div>
-                <div class="perf-pie-ratio" id="perfPieRatio">0/0 Done</div>
-              </div>
-            </div>
-          </div>
-          <div class="perf-stats" id="perfStats"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="empty" id="perfEmpty">Pilih anggota Team untuk lihat performance review.</div>
   </div>
 
   <!-- ============ ACTION VIEW (review submission PIC) ============ -->
@@ -712,7 +715,6 @@ function startTeamSync(){
     renderTeamList();
     populatePicOptions();
     populateMasterPicSelect();
-    populatePerfPicOptions();
   }, err => {
     console.error(err);
   });
@@ -790,7 +792,6 @@ let masterUnlocked = false;
 const VIEWS = {
   tabSummary: 'summaryView',
   tabTimeline: 'timelineView',
-  tabPerformance: 'performanceView',
   tabPic: 'picView',
   tabAction: 'actionView',
   tabTeam: 'teamView',
@@ -805,7 +806,7 @@ function activateView(activeTabId){
   if(activeTabId === 'tabSummary') renderSummary();
   if(activeTabId === 'tabAction') renderActionView();
   if(activeTabId === 'tabTimeline') renderTimeline();
-  if(activeTabId === 'tabPerformance'){ populatePerfPicOptions(); renderPerformance(); }
+  if(activeTabId === 'tabPic') renderPerformance();
 }
 
 let pendingTabId = null;
@@ -856,7 +857,6 @@ document.getElementById('pinOverlay').addEventListener('click', (e) => {
 document.getElementById('tabAssigner').addEventListener('click', () => switchView('tabAssigner'));
 document.getElementById('tabPic').addEventListener('click', () => switchView('tabPic'));
 document.getElementById('tabTimeline').addEventListener('click', () => switchView('tabTimeline'));
-document.getElementById('tabPerformance').addEventListener('click', () => switchView('tabPerformance'));
 document.getElementById('tabAction').addEventListener('click', () => switchView('tabAction'));
 document.getElementById('tabTeam').addEventListener('click', () => switchView('tabTeam'));
 document.getElementById('tabSummary').addEventListener('click', () => switchView('tabSummary'));
@@ -944,6 +944,7 @@ document.getElementById('pageSize').addEventListener('change', (e) => {
 document.getElementById('picSelect').addEventListener('change', (e) => {
   selectedPic = e.target.value;
   renderPicView();
+  renderPerformance();
 });
 
 function editTask(id){
@@ -981,7 +982,6 @@ function render(){
   renderAssignerTable();
   populatePicOptions();
   populateMasterPicSelect();
-  populatePerfPicOptions();
   renderPicView();
   renderActionView();
   renderTimeline();
@@ -1610,22 +1610,11 @@ function renderTimeline(){
 let perfMonth = new Date();
 perfMonth.setDate(1);
 
-function populatePerfPicOptions(){
-  const sel = document.getElementById('perfPicSelect');
-  if(!sel) return;
-  const current = sel.value;
-  const names = getAllPicNames();
-  sel.innerHTML = '<option value="">-- Pilih Team --</option>' +
-    names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
-  if(names.includes(current)) sel.value = current;
-}
-
 function shiftPerfMonth(delta){
   perfMonth = new Date(perfMonth.getFullYear(), perfMonth.getMonth() + delta, 1);
   renderPerformance();
 }
 
-document.getElementById('perfPicSelect').addEventListener('change', renderPerformance);
 document.getElementById('perfPrev').addEventListener('click', () => shiftPerfMonth(-1));
 document.getElementById('perfNext').addEventListener('click', () => shiftPerfMonth(1));
 
@@ -1645,11 +1634,10 @@ function renderPerformance(){
 
   labelEl.textContent = perfMonth.toLocaleDateString('id-ID', {month:'long', year:'numeric'});
 
-  const selected = document.getElementById('perfPicSelect').value;
+  const selected = selectedPic;
   if(!selected){
     resultPanel.style.display = 'none';
-    empty.style.display = 'block';
-    empty.textContent = 'Pilih anggota Team untuk lihat performance review.';
+    empty.style.display = 'none';
     return;
   }
 
