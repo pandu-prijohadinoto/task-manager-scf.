@@ -540,10 +540,10 @@
         <thead>
           <tr>
             <th style="width:20%;">Task</th>
-            <th style="width:11%;" class="th-sort" id="thPic">PIC <span class="sort-icon" id="sortIcon-pic">⇅</span></th>
-            <th style="width:9%;" class="th-sort" id="thPriority">Priority <span class="sort-icon" id="sortIcon-priority">⇅</span></th>
+            <th style="width:11%;">PIC</th>
+            <th style="width:9%;">Priority</th>
             <th style="width:13%;" class="th-sort" id="thDeadline">Deadline <span class="sort-icon" id="sortIcon-deadline">⇅</span></th>
-            <th style="width:12%;" class="th-sort" id="thStatus">Status <span class="sort-icon" id="sortIcon-status">⇅</span></th>
+            <th style="width:12%;">Status</th>
             <th style="width:12%;" class="th-sort" id="thAssignDate">Assign Date <span class="sort-icon" id="sortIcon-assignDate">⇅</span></th>
             <th style="width:23%;">Deliverable</th>
           </tr>
@@ -1887,7 +1887,7 @@ function toggleSummarySort(col){
 }
 
 function updateSummarySortIcons(){
-  ['pic','priority','deadline','status','assignDate'].forEach(col => {
+  ['deadline','assignDate'].forEach(col => {
     const icon = document.getElementById('sortIcon-' + col);
     if(!icon) return;
     if(summarySortColumn === col){
@@ -1900,10 +1900,7 @@ function updateSummarySortIcons(){
   });
 }
 
-document.getElementById('thPic').addEventListener('click', () => toggleSummarySort('pic'));
-document.getElementById('thPriority').addEventListener('click', () => toggleSummarySort('priority'));
 document.getElementById('thDeadline').addEventListener('click', () => toggleSummarySort('deadline'));
-document.getElementById('thStatus').addEventListener('click', () => toggleSummarySort('status'));
 document.getElementById('thAssignDate').addEventListener('click', () => toggleSummarySort('assignDate'));
 
 document.getElementById('summaryPageSize').addEventListener('change', (e) => {
