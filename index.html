@@ -360,10 +360,11 @@
           <option value="rendah">Rendah</option>
         </select>
         <select id="sortBy">
-          <option value="deadline">Urut: deadline terdekat</option>
-          <option value="priority">Urut: priority tertinggi</option>
-          <option value="task">Urut: nama task</option>
-          <option value="pic">Urut: PIC</option>
+          <option value="deadline">Deadline terdekat</option>
+          <option value="priority">Priority tertinggi</option>
+          <option value="task">Nama task</option>
+          <option value="pic">PIC</option>
+          <option value="latest">Latest Update</option>
         </select>
         <select id="pageSize">
           <option value="10">10 task</option>
@@ -493,6 +494,7 @@
           <button class="period-btn active" id="periodMonthly" data-period="monthly">Monthly</button>
           <button class="period-btn" id="periodWeekly" data-period="weekly">Weekly</button>
           <button class="period-btn" id="periodDaily" data-period="daily">Daily</button>
+          <button class="period-btn" id="periodAllTime" data-period="alltime">All Time</button>
         </div>
         <input type="date" id="periodAnchor" style="width:auto;">
         <button class="btn small" id="periodToday">Hari ini</button>
@@ -1047,6 +1049,11 @@ function getFilteredMasterTasks(){
     if(sortBy === 'task') return (a.task||'').localeCompare(b.task||'');
     if(sortBy === 'pic') return (a.pic||'').localeCompare(b.pic||'');
     if(sortBy === 'priority') return (prOrder[a.priority]??1) - (prOrder[b.priority]??1);
+    if(sortBy === 'latest'){
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime; // terbaru diinput di paling atas
+    }
     return new Date(a.deadline) - new Date(b.deadline);
   });
 
@@ -1756,16 +1763,23 @@ document.getElementById('summarySortBy').addEventListener('change', renderSummar
 document.getElementById('periodDaily').addEventListener('click', () => setPeriod('daily'));
 document.getElementById('periodWeekly').addEventListener('click', () => setPeriod('weekly'));
 document.getElementById('periodMonthly').addEventListener('click', () => setPeriod('monthly'));
+document.getElementById('periodAllTime').addEventListener('click', () => setPeriod('alltime'));
 
 function setPeriod(period){
   currentPeriod = period;
-  ['periodDaily','periodWeekly','periodMonthly'].forEach(id => {
+  ['periodDaily','periodWeekly','periodMonthly','periodAllTime'].forEach(id => {
     document.getElementById(id).classList.toggle('active', id === 'period' + period.charAt(0).toUpperCase() + period.slice(1));
   });
+  const isAllTime = period === 'alltime';
+  periodAnchorInput.style.display = isAllTime ? 'none' : '';
+  document.getElementById('periodToday').style.display = isAllTime ? 'none' : '';
   renderSummary();
 }
 
 function getPeriodRange(period, anchorStr){
+  if(period === 'alltime'){
+    return {start: new Date(2000, 0, 1), end: new Date(2100, 0, 1)};
+  }
   const anchor = new Date((anchorStr || todayStr()) + 'T00:00:00');
   let start, end;
   if(period === 'daily'){
@@ -1856,9 +1870,11 @@ function getFilteredSummaryTasks(){
 function renderSummary(){
   const anchorStr = periodAnchorInput.value || todayStr();
   const {start, end} = getPeriodRange(currentPeriod, anchorStr);
-  const rangeLabel = start.getTime() === end.getTime()
-    ? fmtDate(toDateStr(start))
-    : `${fmtDate(toDateStr(start))} — ${fmtDate(toDateStr(end))}`;
+  const rangeLabel = currentPeriod === 'alltime'
+    ? 'Semua Waktu'
+    : (start.getTime() === end.getTime()
+        ? fmtDate(toDateStr(start))
+        : `${fmtDate(toDateStr(start))} — ${fmtDate(toDateStr(end))}`);
   document.getElementById('periodRangeLabel').textContent = rangeLabel;
 
   const {filtered} = getFilteredSummaryTasks();
